@@ -30,8 +30,8 @@ class Student extends Model
         return $this->hasMany(LabUtilizationLog::class, 'student_id');
     }
 
-    // public function enrollments()
-    // {
-    //     return $this->hasMany(StudentEnrollment::class, 'student_id');
-    // }
+    public function enrollments()
+    {
+        return $this->hasMany(StudentEnrollment::class, 'student_id');
+    }
 }
