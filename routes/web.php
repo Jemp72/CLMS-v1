@@ -1,17 +1,22 @@
 <?php
 
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\LogbookController;
+use App\Http\Controllers\ScheduleController;
+use App\Http\Middleware\RequireLogin;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\BookingController;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+Route::post('/login', [AuthController::class, 'login']);
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+Route::post('/switch-role', [AuthController::class, 'switchRole'])->name('switch-role');
 
-Route::prefix('bookings')->name('bookings.')->group(function () {
-    Route::get('/',                        [BookingController::class, 'index'])->name('index');
-    Route::get('/lab/{labId}',             [BookingController::class, 'byLab'])->name('byLab');
-    Route::post('/',                       [BookingController::class, 'store'])->name('store');
-    Route::get('/{id}',                    [BookingController::class, 'show'])->name('show');
-    Route::patch('/{id}/status',           [BookingController::class, 'updateStatus'])->name('updateStatus');
-    Route::delete('/{id}',                 [BookingController::class, 'destroy'])->name('destroy');
+Route::middleware(RequireLogin::class)->group(function () {
+    Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/logbook', [LogbookController::class, 'index'])->name('logbook');
+    Route::get('/schedule', [ScheduleController::class, 'index'])->name('schedule');
+    Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory');
 });
