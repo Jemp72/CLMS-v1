@@ -2,9 +2,11 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\LogbookController;
 use App\Http\Controllers\ScheduleController;
+use App\Http\Controllers\SupplyController;
 use App\Http\Middleware\RequireLogin;
 use Illuminate\Support\Facades\Route;
 
@@ -18,4 +20,16 @@ Route::middleware(RequireLogin::class)->group(function () {
     Route::get('/logbook', [LogbookController::class, 'index'])->name('logbook');
     Route::get('/schedule', [ScheduleController::class, 'index'])->name('schedule');
     Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory');
+    Route::get('/inventory/print', [InventoryController::class, 'print'])->name('inventory.print');
+
+    // Equipment CRUD
+    Route::post('/inventory/equipment', [EquipmentController::class, 'store'])->name('equipment.store');
+    Route::get('/inventory/equipment/{id}', [EquipmentController::class, 'show'])->name('equipment.show');
+    Route::put('/inventory/equipment/{id}', [EquipmentController::class, 'update'])->name('equipment.update');
+    Route::delete('/inventory/equipment/{id}', [EquipmentController::class, 'destroy'])->name('equipment.destroy');
+
+    // Supply CRUD
+    Route::post('/inventory/supplies', [SupplyController::class, 'store'])->name('supply.store');
+    Route::put('/inventory/supplies/{id}', [SupplyController::class, 'update'])->name('supply.update');
+    Route::delete('/inventory/supplies/{id}', [SupplyController::class, 'destroy'])->name('supply.destroy');
 });
