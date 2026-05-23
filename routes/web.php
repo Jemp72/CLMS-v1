@@ -25,6 +25,7 @@ Route::middleware(RequireLogin::class)->group(function () {
     // Equipment CRUD
     Route::post('/inventory/equipment', [EquipmentController::class, 'store'])->name('equipment.store');
     Route::get('/inventory/equipment/{id}', [EquipmentController::class, 'show'])->name('equipment.show');
+    Route::post('/inventory/equipment/{id}/status', [EquipmentController::class, 'updateStatus'])->name('equipment.update.status');
     Route::put('/inventory/equipment/{id}', [EquipmentController::class, 'update'])->name('equipment.update');
     Route::delete('/inventory/equipment/{id}', [EquipmentController::class, 'destroy'])->name('equipment.destroy');
 

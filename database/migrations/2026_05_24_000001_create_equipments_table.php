@@ -13,7 +13,7 @@ return new class extends Migration
         Schema::create('equipments', function (Blueprint $table) {
             $table->increments('equipment_id');
 
-            $table->string('equipment_no', 50);
+            $table->string('equipment_no', 50)->unique();
             $table->string('serial_no', 100)->unique()->nullable();
 
             $table->string('equipment_name', 150);
@@ -36,21 +36,11 @@ return new class extends Migration
 
             $table->integer('quantity')->default(1);
 
-            $table->unsignedInteger('lab_id');
-            $table->unsignedInteger('parent_equipment_id')->nullable();
+            $table->integer('lab_id');           // signed INT — matches laboratories.lab_id
+            $table->integer('parent_equipment_id')->nullable();
 
             $table->boolean('preventive_maintenance_done')->default(false);
             $table->string('remarks', 255)->nullable();
-
-            $table->foreign('lab_id')
-                  ->references('lab_id')
-                  ->on('laboratories')
-                  ->onDelete('restrict');
-
-            $table->foreign('parent_equipment_id')
-                  ->references('equipment_id')
-                  ->on('equipments')
-                  ->onDelete('set null');
         });
     }
 

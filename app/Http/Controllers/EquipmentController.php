@@ -39,7 +39,7 @@ class EquipmentController extends Controller
         }
 
         $data = $request->validate([
-            'equipment_no'                => 'required|string|max:50',
+            'equipment_no'                => 'required|string|max:50|unique:equipments,equipment_no',
             'serial_no'                   => 'nullable|string|max:100|unique:equipments,serial_no',
             'equipment_name'              => 'required|string|max:150',
             'brand'                       => 'nullable|string|max:100',
@@ -68,7 +68,7 @@ class EquipmentController extends Controller
         }
 
         $data = $request->validate([
-            'equipment_no'                => 'required|string|max:50',
+            'equipment_no'                => 'required|string|max:50|unique:equipments,equipment_no,' . $id . ',equipment_id',
             'serial_no'                   => 'nullable|string|max:100|unique:equipments,serial_no,' . $id . ',equipment_id',
             'equipment_name'              => 'required|string|max:150',
             'brand'                       => 'nullable|string|max:100',
@@ -88,6 +88,22 @@ class EquipmentController extends Controller
 
         return redirect()->route('inventory', ['tab' => 'equipment'])
             ->with('success', 'Equipment updated successfully.');
+    }
+
+    public function updateStatus(Request $request, int $id)
+    {
+        // Any logged-in user can update status via QR scan
+        $data = $request->validate([
+            'equipment_status'            => 'required|in:available,in-use,maintenance,damaged',
+            'preventive_maintenance_done' => 'nullable|boolean',
+        ]);
+
+        $data['preventive_maintenance_done'] = $request->boolean('preventive_maintenance_done');
+
+        DB::table('equipments')->where('equipment_id', $id)->update($data);
+
+        return redirect()->route('equipment.show', $id)
+            ->with('scan_success', 'Status updated to ' . ucfirst(str_replace('-', ' ', $data['equipment_status'])) . '.');
     }
 
     public function destroy(int $id)
