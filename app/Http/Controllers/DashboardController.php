@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Support\Facades\DB;
+
 class DashboardController extends Controller
 {
     public function index()
@@ -24,14 +26,26 @@ class DashboardController extends Controller
             ['user' => 'Pedro Garcia (2021-12347)', 'action' => 'Logged in', 'timestamp' => '1 hour ago', 'status' => 'success'],
         ];
 
-        $lowStockItems = [
-            ['item' => 'Mouse - Logitech M90', 'category' => 'Peripheral', 'quantity' => 3, 'threshold' => 10, 'status' => 'critical'],
-            ['item' => 'Keyboard - Logitech K120', 'category' => 'Peripheral', 'quantity' => 5, 'threshold' => 10, 'status' => 'warning'],
-            ['item' => 'HDMI Cable - 2m', 'category' => 'Cable', 'quantity' => 7, 'threshold' => 15, 'status' => 'warning'],
-            ['item' => 'Ethernet Cable - Cat6', 'category' => 'Cable', 'quantity' => 8, 'threshold' => 20, 'status' => 'warning'],
-        ];
+        $totalEquipment = DB::table('equipments')->count();
 
-        return view('dashboard.admin', compact('activityLogs', 'lowStockItems'));
+        $lowStockItems = DB::table('office_supplies')
+            ->whereColumn('quantity', '<=', 'minimum_stock_threshold')
+            ->orderBy('quantity', 'asc')
+            ->limit(5)
+            ->get()
+            ->map(function ($s) {
+                return [
+                    'item' => $s->supply_name,
+                    'category' => $s->category,
+                    'quantity' => $s->quantity,
+                    'threshold' => $s->minimum_stock_threshold,
+                    'status' => $s->quantity == 0 ? 'critical' : 'warning',
+                    'percentage' => $s->minimum_stock_threshold > 0 ? round(($s->quantity / $s->minimum_stock_threshold) * 100) : 0,
+                ];
+            })
+            ->toArray();
+
+        return view('dashboard.admin', compact('activityLogs', 'lowStockItems', 'totalEquipment'));
     }
 
     private function instructorDashboard()

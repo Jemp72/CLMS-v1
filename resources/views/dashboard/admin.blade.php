@@ -37,7 +37,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-muted text-sm mb-1">Total Equipment</p>
-                    <p class="text-3xl font-heading font-semibold text-[#2c2c2c]">342</p>
+                    <p class="text-3xl font-heading font-semibold text-[#2c2c2c]">{{ $totalEquipment }}</p>
                 </div>
                 <x-icon name="package" class="w-10 h-10 text-primary" />
             </div>
@@ -117,7 +117,7 @@
                         <div class="flex items-center gap-2">
                             <div class="flex-1 bg-surface rounded-full h-2">
                                 <div class="h-2 rounded-full {{ $item['status'] === 'critical' ? 'bg-primary' : 'bg-warning' }}"
-                                     style="width: {{ round(($item['quantity'] / $item['threshold']) * 100) }}%"></div>
+                                     style="width: {{ $item['percentage'] }}%"></div>
                             </div>
                             <span class="text-xs text-muted flex-shrink-0">{{ $item['quantity'] }}/{{ $item['threshold'] }}</span>
                         </div>
