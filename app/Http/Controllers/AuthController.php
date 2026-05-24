@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\SystemUser;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
@@ -22,13 +24,21 @@ class AuthController extends Controller
             'password' => 'required',
         ]);
 
-        // Demo: accept any credentials
+        $user = SystemUser::where('email', $request->email)->first();
+
+        if (! $user || ! Hash::check($request->password, $user->password)) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->withErrors(['email' => 'Invalid email or password.']);
+        }
+
         session([
             'logged_in' => true,
-            'role' => 'admin',
-            'user_name' => 'Administrator',
-            'user_email' => 'admin@usep.edu.ph',
-            'user_avatar' => 'AD',
+            'role' => $user->role_type,
+            'user_name' => trim($user->first_name . ' ' . $user->last_name),
+            'user_email' => $user->email,
+            'user_avatar' => strtoupper(substr($user->first_name, 0, 1) . substr($user->last_name, 0, 1)),
         ]);
 
         return redirect()->route('dashboard');
