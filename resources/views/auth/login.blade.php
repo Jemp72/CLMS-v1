@@ -74,6 +74,10 @@
                     Login
                 </button>
 
+                <div class="mt-3 p-3 rounded-lg bg-surface border border-black/10 text-sm text-[#2c2c2c]">
+                    <strong>Test account:</strong> admin@usep.edu.ph / password123
+                </div>
+
                 <div class="text-center">
                     <a href="#" class="text-sm text-primary hover:underline">Forgot Password?</a>
                 </div>
