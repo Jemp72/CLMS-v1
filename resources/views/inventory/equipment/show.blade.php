@@ -99,19 +99,6 @@
             @endforeach
         </div>
 
-        {{-- PM toggle --}}
-        <div class="bg-white rounded-xl border border-black/10 p-4 mb-6">
-            <label class="flex items-center gap-3 cursor-pointer">
-                <input type="checkbox" name="preventive_maintenance_done" value="1"
-                       class="w-5 h-5 rounded border-black/20 accent-green-600"
-                       {{ $equipment->preventive_maintenance_done ? 'checked' : '' }}>
-                <div>
-                    <p class="text-sm font-medium text-[#2c2c2c]">Preventive Maintenance Done</p>
-                    <p class="text-xs text-muted">Mark if PM has been completed for this cycle</p>
-                </div>
-            </label>
-        </div>
-
         {{-- Submit --}}
         <button type="submit"
                 class="w-full py-4 bg-primary text-white rounded-xl font-semibold text-base hover:bg-primary-dark active:scale-[0.98] transition-all">

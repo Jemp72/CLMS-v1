@@ -97,24 +97,41 @@
                      correctLevel: QRCode.CorrectLevel.H
                  });
              });
+         },
+
+         printQRLabel() {
+             if (!this.selectedEquipment || typeof QRCode === "undefined") return;
+
+             const label = document.getElementById("qr-print-label");
+             const qrEl  = document.getElementById("qr-print-canvas");
+
+             // Fill in label text
+             document.getElementById("print-eq-no").textContent   = this.selectedEquipment.equipment_no;
+             document.getElementById("print-eq-name").textContent = this.selectedEquipment.equipment_name;
+             document.getElementById("print-eq-sn").textContent   = this.selectedEquipment.serial_no ? "SN: " + this.selectedEquipment.serial_no : "";
+             document.getElementById("print-eq-lab").textContent  = this.selectedEquipment.lab_name;
+
+             // Generate QR into the print canvas
+             qrEl.innerHTML = "";
+             const url = `{{ url('/inventory/equipment') }}/${this.selectedEquipment.equipment_id}`;
+             new QRCode(qrEl, {
+                 text:         url,
+                 width:        200,
+                 height:       200,
+                 colorDark:    "#000000",
+                 colorLight:   "#ffffff",
+                 correctLevel: QRCode.CorrectLevel.H
+             });
+
+             // Wait for QR to render, then print
+             this.$nextTick(() => {
+                 setTimeout(() => window.print(), 200);
+             });
          }
      }'
      x-init='$watch("showQR", v => { if (v) generateQR("qr-canvas"); })'>
 
-    {{-- ── Low Stock Notification Banner ───────────────────────────────────── --}}
-    @if ($lowStockCount > 0)
-    <div class="flex items-start gap-3 p-4 bg-warning/10 border border-warning/40 rounded-lg">
-        <x-icon name="alert-circle" class="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
-        <div class="flex-1">
-            <p class="text-sm font-medium text-[#2c2c2c]">Low Stock Alert</p>
-            <p class="text-sm text-muted">
-                {{ $lowStockCount }} supply {{ $lowStockCount === 1 ? 'item is' : 'items are' }} running low or out of stock.
-                <button @click="activeTab = 'supplies'; supLowStockOnly = true"
-                        class="text-primary underline hover:no-underline ml-1">View low stock items</button>
-            </p>
-        </div>
-    </div>
-    @endif
+
 
     {{-- ── Flash message ────────────────────────────────────────────────────── --}}
     @if (session('success'))
@@ -131,10 +148,10 @@
             <p class="text-muted text-sm">Physical count records for equipment and consumable supplies</p>
         </div>
         <div class="flex items-center gap-3">
-            <a href="{{ route('inventory.print') }}" target="_blank"
+            <a href="{{ route('inventory.print', ['tab' => 'activeTab']) }}" target="_blank"
                class="flex items-center gap-2 px-4 py-2 border border-black/10 rounded-lg hover:bg-surface transition-colors text-sm text-[#2c2c2c]">
                 <x-icon name="download" class="w-4 h-4" />
-                Print Record
+                Print List
             </a>
             @if (session('role') === 'admin')
             <button x-show="activeTab === 'equipment'" @click="showAddEquipment = true"
@@ -148,38 +165,6 @@
                 Add Supply
             </button>
             @endif
-        </div>
-    </div>
-
-    {{-- ── Summary Stat Cards ────────────────────────────────────────────────── --}}
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white p-5 rounded-lg border border-black/10 shadow-sm flex items-center justify-between">
-            <div>
-                <p class="text-muted text-xs mb-1 uppercase tracking-wide">Total Equipment</p>
-                <p class="text-2xl font-heading font-semibold text-[#2c2c2c]">{{ $totalEquipment }}</p>
-            </div>
-            <x-icon name="monitor" class="w-9 h-9 text-primary opacity-70" />
-        </div>
-        <div class="bg-white p-5 rounded-lg border border-black/10 shadow-sm flex items-center justify-between">
-            <div>
-                <p class="text-muted text-xs mb-1 uppercase tracking-wide">Total Supplies</p>
-                <p class="text-2xl font-heading font-semibold text-[#2c2c2c]">{{ $totalSupplies }}</p>
-            </div>
-            <x-icon name="box" class="w-9 h-9 text-primary opacity-70" />
-        </div>
-        <div class="bg-white p-5 rounded-lg border border-black/10 shadow-sm flex items-center justify-between">
-            <div>
-                <p class="text-muted text-xs mb-1 uppercase tracking-wide">Low Stock</p>
-                <p class="text-2xl font-heading font-semibold {{ $lowStockCount > 0 ? 'text-warning' : 'text-[#2c2c2c]' }}">{{ $lowStockCount }}</p>
-            </div>
-            <x-icon name="alert-circle" class="w-9 h-9 text-primary opacity-70" />
-        </div>
-        <div class="bg-white p-5 rounded-lg border border-black/10 shadow-sm flex items-center justify-between">
-            <div>
-                <p class="text-muted text-xs mb-1 uppercase tracking-wide">Needs PM</p>
-                <p class="text-2xl font-heading font-semibold {{ $needsMaintenanceCount > 0 ? 'text-primary' : 'text-[#2c2c2c]' }}">{{ $needsMaintenanceCount }}</p>
-            </div>
-            <x-icon name="wrench" class="w-9 h-9 text-primary opacity-70" />
         </div>
     </div>
 
@@ -199,9 +184,6 @@
                 <x-icon name="box" class="w-4 h-4" />
                 Consumable Supplies
                 <span class="px-2 py-0.5 bg-surface rounded-full text-xs">{{ $totalSupplies }}</span>
-                @if ($lowStockCount > 0)
-                <span class="px-2 py-0.5 bg-warning text-[#2c2c2c] rounded-full text-xs font-medium">{{ $lowStockCount }} low</span>
-                @endif
             </button>
         </nav>
     </div>
@@ -262,7 +244,6 @@
                             <th class="px-5 py-3 text-left text-xs font-semibold text-[#2c2c2c] uppercase tracking-wide">Type</th>
                             <th class="px-5 py-3 text-left text-xs font-semibold text-[#2c2c2c] uppercase tracking-wide">Lab</th>
                             <th class="px-5 py-3 text-left text-xs font-semibold text-[#2c2c2c] uppercase tracking-wide">Status</th>
-                            <th class="px-5 py-3 text-left text-xs font-semibold text-[#2c2c2c] uppercase tracking-wide">PM</th>
                             <th class="px-5 py-3 text-left text-xs font-semibold text-[#2c2c2c] uppercase tracking-wide">Actions</th>
                         </tr>
                     </thead>
@@ -282,12 +263,6 @@
                                     <span class="inline-block px-2 py-1 rounded text-xs font-medium"
                                           :class="statusClass(item.equipment_status)"
                                           x-text="statusLabel(item.equipment_status)"></span>
-                                </td>
-                                <td class="px-5 py-3">
-                                    <span x-show="!!item.preventive_maintenance_done"
-                                          class="inline-block px-2 py-1 bg-success/10 text-success rounded text-xs font-medium">Done</span>
-                                    <span x-show="!item.preventive_maintenance_done"
-                                          class="inline-block px-2 py-1 bg-surface text-muted rounded text-xs">Pending</span>
                                 </td>
                                 <td class="px-5 py-3">
                                     <div class="flex items-center gap-1">
@@ -311,7 +286,7 @@
                         </template>
                         <template x-if="filteredEquipment.length === 0">
                             <tr>
-                                <td colspan="9" class="px-5 py-12 text-center text-sm text-muted">
+                                <td colspan="8" class="px-5 py-12 text-center text-sm text-muted">
                                     No equipment found matching your filters.
                                 </td>
                             </tr>
@@ -386,21 +361,14 @@
                                 <td class="px-5 py-3 text-sm font-mono text-muted" x-text="item.minimum_stock_threshold"></td>
                                 <td class="px-5 py-3 text-sm text-muted" x-text="item.unit || '—'"></td>
                                 <td class="px-5 py-3">
-                                    <div class="flex items-center gap-2">
-                                        <div class="w-16 bg-surface rounded-full h-1.5">
-                                            <div class="h-1.5 rounded-full transition-all"
-                                                 :class="item.quantity === 0 ? 'bg-primary' : item.quantity <= item.minimum_stock_threshold ? 'bg-warning' : 'bg-success'"
-                                                 :style="`width:${item.minimum_stock_threshold > 0 ? Math.min(100, Math.round((item.quantity / item.minimum_stock_threshold) * 100)) : 100}%`"></div>
-                                        </div>
-                                        <span class="inline-block px-2 py-1 rounded text-xs font-medium"
-                                              :class="{
-                                                  'bg-primary text-white':      item.quantity === 0,
-                                                  'bg-warning text-[#2c2c2c]': item.quantity > 0 && item.quantity <= item.minimum_stock_threshold,
-                                                  'bg-success/10 text-success': item.quantity > item.minimum_stock_threshold
-                                              }"
-                                              x-text="item.quantity === 0 ? 'Out of Stock' : item.quantity <= item.minimum_stock_threshold ? 'Low Stock' : 'OK'">
-                                        </span>
-                                    </div>
+                                    <span class="inline-block px-2 py-1 rounded text-xs font-medium"
+                                          :class="{
+                                              'bg-primary text-white':      item.quantity === 0,
+                                              'bg-warning text-[#2c2c2c]': item.quantity > 0 && item.quantity <= item.minimum_stock_threshold,
+                                              'bg-success/10 text-success': item.quantity > item.minimum_stock_threshold
+                                          }"
+                                          x-text="item.quantity === 0 ? 'Out of Stock' : item.quantity <= item.minimum_stock_threshold ? 'Low Stock' : 'OK'">
+                                    </span>
                                 </td>
                                 <td class="px-5 py-3 text-sm text-muted max-w-[160px] truncate" x-text="item.remarks || '—'"></td>
                                 <td class="px-5 py-3">
@@ -546,11 +514,6 @@
                     <textarea name="remarks" rows="2" placeholder="Optional notes..."
                               class="w-full px-4 py-2.5 border border-black/10 rounded-lg bg-surface text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none"></textarea>
                 </div>
-                <div class="flex items-center gap-2">
-                    <input type="checkbox" name="preventive_maintenance_done" value="1" id="add-eq-pm"
-                           class="rounded border-black/20 text-primary focus:ring-primary" />
-                    <label for="add-eq-pm" class="text-sm text-[#2c2c2c] cursor-pointer">Preventive Maintenance Done</label>
-                </div>
                 <div class="flex justify-end gap-3 pt-2 border-t border-black/10">
                     <button type="button" @click="showAddEquipment = false"
                             class="px-5 py-2.5 border border-black/10 rounded-lg hover:bg-surface transition-colors text-sm">Cancel</button>
@@ -652,12 +615,6 @@
                     <textarea name="remarks" rows="2" :value="selectedEquipment?.remarks || ''"
                               class="w-full px-4 py-2.5 border border-black/10 rounded-lg bg-surface text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none"></textarea>
                 </div>
-                <div class="flex items-center gap-2">
-                    <input type="checkbox" name="preventive_maintenance_done" value="1" id="edit-eq-pm"
-                           :checked="!!selectedEquipment?.preventive_maintenance_done"
-                           class="rounded border-black/20 text-primary focus:ring-primary" />
-                    <label for="edit-eq-pm" class="text-sm text-[#2c2c2c] cursor-pointer">Preventive Maintenance Done</label>
-                </div>
                 <div class="flex justify-end gap-3 pt-2 border-t border-black/10">
                     <button type="button" @click="showEditEquipment = false"
                             class="px-5 py-2.5 border border-black/10 rounded-lg hover:bg-surface transition-colors text-sm">Cancel</button>
@@ -732,17 +689,11 @@
                     </div>
                 </div>
                 <div class="flex gap-2 w-full">
-                    <button @click="generateQR('qr-canvas')"
-                            class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 border border-black/10 rounded-lg hover:bg-surface transition-colors text-xs">
-                        <x-icon name="refresh-cw" class="w-3.5 h-3.5 text-muted" />
-                        Regenerate
-                    </button>
-                    <a :href="`{{ url('/inventory/equipment') }}/${selectedEquipment?.equipment_id}`"
-                       target="_blank"
-                       class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors text-xs font-medium">
+                    <button @click="printQRLabel()"
+                            class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors text-xs font-medium">
                         <x-icon name="download" class="w-3.5 h-3.5" />
                         Print Label
-                    </a>
+                    </button>
                 </div>
             </div>
         </div>
@@ -914,10 +865,39 @@
         </div>
     </div>
 
+    {{-- Hidden printable QR label — visible only during window.print() --}}
+    <div id="qr-print-label" class="hidden print:flex flex-col items-center justify-center fixed inset-0 bg-white z-[9999] p-8">
+        <p class="text-xs uppercase tracking-widest text-gray-400 mb-2" style="font-family:monospace">USeP CLMS — Inventory</p>
+        <div id="qr-print-canvas" class="my-3"></div>
+        <p id="print-eq-no" class="text-lg font-bold text-black mt-2" style="font-family:monospace"></p>
+        <p id="print-eq-name" class="text-sm text-gray-700"></p>
+        <p id="print-eq-sn" class="text-xs text-gray-500 mt-1"></p>
+        <p id="print-eq-lab" class="text-xs text-gray-500"></p>
+    </div>
+
 </div>
 @endsection
 
 @push('modals')
 {{-- davidshimjs/qrcodejs — https://davidshimjs.github.io/qrcodejs/ --}}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+    @media print {
+        /* Hide everything except the QR label */
+        body * { visibility: hidden !important; }
+        #qr-print-label,
+        #qr-print-label * {
+            visibility: visible !important;
+            display: flex !important;
+        }
+        #qr-print-label {
+            position: fixed !important;
+            inset: 0 !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            background: white !important;
+        }
+    }
+</style>
 @endpush

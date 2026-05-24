@@ -49,11 +49,8 @@ class EquipmentController extends Controller
             'quantity'                    => 'required|integer|min:1',
             'lab_id'                      => 'required|integer|exists:laboratories,lab_id',
             'parent_equipment_id'         => 'nullable|integer|exists:equipments,equipment_id',
-            'preventive_maintenance_done' => 'nullable|boolean',
             'remarks'                     => 'nullable|string|max:255',
         ]);
-
-        $data['preventive_maintenance_done'] = $request->boolean('preventive_maintenance_done');
 
         DB::table('equipments')->insert($data);
 
@@ -78,11 +75,8 @@ class EquipmentController extends Controller
             'quantity'                    => 'required|integer|min:1',
             'lab_id'                      => 'required|integer|exists:laboratories,lab_id',
             'parent_equipment_id'         => 'nullable|integer|exists:equipments,equipment_id',
-            'preventive_maintenance_done' => 'nullable|boolean',
             'remarks'                     => 'nullable|string|max:255',
         ]);
-
-        $data['preventive_maintenance_done'] = $request->boolean('preventive_maintenance_done');
 
         DB::table('equipments')->where('equipment_id', $id)->update($data);
 
@@ -95,10 +89,7 @@ class EquipmentController extends Controller
         // Any logged-in user can update status via QR scan
         $data = $request->validate([
             'equipment_status'            => 'required|in:available,in-use,maintenance,damaged',
-            'preventive_maintenance_done' => 'nullable|boolean',
         ]);
-
-        $data['preventive_maintenance_done'] = $request->boolean('preventive_maintenance_done');
 
         DB::table('equipments')->where('equipment_id', $id)->update($data);
 

@@ -32,7 +32,6 @@ class InventoryController extends Controller
         $totalEquipment       = count($equipment);
         $totalSupplies        = count($supplies);
         $lowStockCount        = count(array_filter($supplies, fn ($s) => $s['quantity'] <= $s['minimum_stock_threshold']));
-        $needsMaintenanceCount = count(array_filter($equipment, fn ($e) => ! $e['preventive_maintenance_done']));
 
         // Equipment count per laboratory
         $perLab = DB::table('equipments')
@@ -59,7 +58,6 @@ class InventoryController extends Controller
             'totalEquipment',
             'totalSupplies',
             'lowStockCount',
-            'needsMaintenanceCount',
             'perLab',
             'labs',
             'typeLabels',
