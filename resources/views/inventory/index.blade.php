@@ -888,15 +888,18 @@
         #qr-print-label,
         #qr-print-label * {
             visibility: visible !important;
-            display: flex !important;
         }
         #qr-print-label {
             position: fixed !important;
             inset: 0 !important;
+            display: flex !important;
             flex-direction: column !important;
             align-items: center !important;
             justify-content: center !important;
             background: white !important;
+        }
+        #qr-print-canvas canvas {
+            display: none !important;
         }
     }
 </style>
