@@ -2,23 +2,169 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\GuestTimeInRequest;
+use App\Http\Requests\StudentTimeInRequest;
+use App\Http\Requests\StudentTimeOutRequest;
+use App\Models\LabUtilizationLog;
+use App\Models\Laboratory;
+use App\Services\LoggingService;
+use Illuminate\Http\Request;
+
 class LogbookController extends Controller
 {
+    protected LoggingService $loggingService;
+
+    public function __construct(LoggingService $loggingService)
+    {
+        $this->loggingService = $loggingService;
+    }
+
+    /**
+     * Public logging terminal page
+     */
     public function index()
     {
-        $entries = [
-            ['studentId' => '2021-12345', 'name' => 'Juan Dela Cruz', 'timeIn' => '08:15 AM', 'timeOut' => '10:30 AM', 'purpose' => 'Programming Practice', 'date' => 'May 10, 2026'],
-            ['studentId' => '2021-12346', 'name' => 'Maria Santos', 'timeIn' => '08:20 AM', 'timeOut' => '11:45 AM', 'purpose' => 'Research Project', 'date' => 'May 10, 2026'],
-            ['studentId' => '2021-12347', 'name' => 'Pedro Garcia', 'timeIn' => '09:00 AM', 'timeOut' => '12:00 PM', 'purpose' => 'Database Assignment', 'date' => 'May 10, 2026'],
-            ['studentId' => '2021-12348', 'name' => 'Ana Reyes', 'timeIn' => '09:15 AM', 'timeOut' => '', 'purpose' => 'Web Development', 'date' => 'May 10, 2026'],
-            ['studentId' => '2021-12349', 'name' => 'Carlos Lopez', 'timeIn' => '09:30 AM', 'timeOut' => '', 'purpose' => 'Thesis Work', 'date' => 'May 10, 2026'],
-            ['studentId' => '2021-12350', 'name' => 'Sofia Mendoza', 'timeIn' => '10:00 AM', 'timeOut' => '01:15 PM', 'purpose' => 'Java Programming', 'date' => 'May 10, 2026'],
-            ['studentId' => '2021-12351', 'name' => 'Miguel Torres', 'timeIn' => '10:45 AM', 'timeOut' => '', 'purpose' => 'Study Session', 'date' => 'May 10, 2026'],
-            ['studentId' => '2021-12352', 'name' => 'Isabella Cruz', 'timeIn' => '11:00 AM', 'timeOut' => '02:30 PM', 'purpose' => 'Network Lab', 'date' => 'May 10, 2026'],
-            ['studentId' => '2021-12353', 'name' => 'Diego Ramos', 'timeIn' => '11:30 AM', 'timeOut' => '', 'purpose' => 'Algorithm Practice', 'date' => 'May 10, 2026'],
-            ['studentId' => '2021-12354', 'name' => 'Lucia Fernandez', 'timeIn' => '01:00 PM', 'timeOut' => '04:00 PM', 'purpose' => 'Capstone Project', 'date' => 'May 10, 2026'],
-        ];
+        $laboratories = Laboratory::all();
 
-        return view('logbook.index', compact('entries'));
+        return view('logging.index', compact('laboratories'));
+    }
+
+    /**
+     * Student Time In
+     */
+    public function studentTimeIn(StudentTimeInRequest $request)
+    {
+        try {
+
+            $this->loggingService->studentTimeIn(
+                $request->validated()
+            );
+
+            return redirect()
+                ->back()
+                ->with('success', 'Student successfully logged in.');
+
+        } catch (\Exception $e) {
+
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Student Time Out
+     */
+    public function studentTimeOut(StudentTimeOutRequest $request)
+    {
+        try {
+
+            $this->loggingService->studentTimeOut(
+                $request->student_id
+            );
+
+            return redirect()
+                ->back()
+                ->with('success', 'Student successfully logged out.');
+
+        } catch (\Exception $e) {
+
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Guest Time In
+     */
+    public function guestTimeIn(GuestTimeInRequest $request)
+    {
+        try {
+
+            $this->loggingService->guestTimeIn(
+                $request->validated()
+            );
+
+            return redirect()
+                ->back()
+                ->with('success', 'Guest successfully logged in.');
+
+        } catch (\Exception $e) {
+
+            return redirect()
+                ->back()
+                ->withInput()
+                ->with('error', $e->getMessage());
+        }
+    }
+
+    /**
+     * Admin Logbook
+     */
+    public function logs(Request $request)
+    {
+        $logs = $this->loggingService
+            ->getLogs($request);
+
+        $entries = $logs->map(function ($log) {
+
+            return [
+                'id' => $log->lab_utilization_log_id,
+
+                'studentId' => $log->student?->student_id
+                    ?? 'GUEST',
+
+                'name' => $log->student
+                    ? $log->student->first_name . ' ' . $log->student->last_name
+                    : $log->guest?->guest_name,
+
+                'timeIn' => optional($log->time_in)
+                    ->format('h:i A'),
+
+                'timeOut' => $log->time_out
+                    ? $log->time_out->format('h:i A')
+                    : null,
+
+                'purpose' => $log->purpose,
+
+                'date' => optional($log->log_date)
+                    ->format('M d, Y'),
+
+                'laboratory' => $log->laboratory?->lab_name,
+            ];
+        });
+
+        return view('logbook.index', [
+            'entries' => $entries,
+            'logs' => $logs,
+        ]);
+    }
+
+    /**
+     * Active Users
+     */
+    public function activeUsers()
+    {
+        $activeUsers = $this->loggingService->getActiveUsers();
+
+        return view('logging.active-users', compact('activeUsers'));
+    }
+
+    /**
+     * View Single Log
+     */
+    public function show($id)
+    {
+        $log = LabUtilizationLog::with([
+            'student',
+            'guest',
+            'laboratory',
+            'instructor'
+        ])->findOrFail($id);
+
+        return view('logging.show', compact('log'));
     }
 }
