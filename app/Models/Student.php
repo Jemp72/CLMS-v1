@@ -17,6 +17,8 @@ class Student extends Model
 
     protected $keyType = 'string';
 
+    public $timestamps = false;
+
     protected $fillable = [
         'student_id',
         'first_name',

@@ -13,6 +13,8 @@ class SystemUserPrivilege extends Model
 
     protected $primaryKey = 'privilege_id';
 
+    public $timestamps = false;
+
     protected $fillable = [
         'system_user_id',
         'can_manage_accounts',
