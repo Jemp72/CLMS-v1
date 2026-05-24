@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreBookingRequest;
+use App\Http\Requests\UpdateBookingStatusRequest;
 use App\Models\Laboratory;
 use App\Services\BookingService;
-use Illuminate\Http\Request;
 
 class BookingController extends Controller
 {
@@ -24,17 +25,9 @@ class BookingController extends Controller
      * Handle a reservation submission.
      * Accepts browser form submits and JSON API calls.
      */
-    public function store(Request $request)
+    public function store(StoreBookingRequest $request)
     {
-        $data = $request->validate([
-            'lab_id'         => 'required|integer|exists:laboratories,lab_id',
-            'requestor_name' => 'required|string|max:150',
-            'contact_number' => 'nullable|string|max:50',
-            'purpose'        => 'required|string|max:255',
-            'booking_date'   => 'required|date|after_or_equal:today',
-            'start_time'     => 'required|date_format:H:i',
-            'end_time'       => 'required|date_format:H:i|after:start_time',
-        ]);
+        $data = $request->validated();
 
         if ($this->bookingService->hasConflict(
             $data['lab_id'],
@@ -68,12 +61,9 @@ class BookingController extends Controller
      * Approve / reject / complete a booking.
      * Called by the admin from the /schedule view.
      */
-    public function updateStatus(Request $request, int $id)
+    public function updateStatus(UpdateBookingStatusRequest $request, int $id)
     {
-        $data = $request->validate([
-            'booking_status' => 'required|in:approved,rejected,completed',
-            'approved_by'    => 'nullable|integer|exists:system_users,system_user_id',
-        ]);
+        $data = $request->validated();
 
         // Fallback to logged-in admin id from session (once real auth is wired).
         $approvedBy = $data['approved_by'] ?? session('user_id');
