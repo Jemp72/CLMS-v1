@@ -4,30 +4,35 @@ namespace App\Services;
 
 use App\Models\Booking;
 use App\Models\ClassSchedule;
-use Illuminate\Database\Eloquent\Collection;
+use Carbon\Carbon;
+use Illuminate\Support\Collection;
 
 class BookingService
 {
     /**
-     * Fetch bookings with optional filters.
-     *
-     * Supported filters:
-     *   - lab_id          → only bookings for that lab
-     *   - status          → only bookings with that booking_status
-     *   - booking_date    → only bookings on that exact date
-     *   - from / to       → only bookings within a date range
+     * Fetch all bookings for a specific month, formatted for the calendar view.
+     * Returns plain arrays (already shaped for Alpine consumption).
      */
-    public function getBookings(array $filters = []): Collection
+    public function getBookingsForCalendar(int $month, int $year): Collection
     {
-        return Booking::with(['laboratory', 'approver'])
-            ->when($filters['lab_id']       ?? null, fn($q, $v) => $q->where('lab_id', $v))
-            ->when($filters['status']       ?? null, fn($q, $v) => $q->where('booking_status', $v))
-            ->when($filters['booking_date'] ?? null, fn($q, $v) => $q->where('booking_date', $v))
-            ->when($filters['from']         ?? null, fn($q, $v) => $q->where('booking_date', '>=', $v))
-            ->when($filters['to']           ?? null, fn($q, $v) => $q->where('booking_date', '<=', $v))
-            ->orderBy('booking_date')
+        return Booking::with('laboratory')
+            ->whereMonth('booking_date', $month)
+            ->whereYear('booking_date', $year)
             ->orderBy('start_time')
-            ->get();
+            ->get()
+            ->map(fn($b) => [
+                'id'        => $b->booking_id,
+                'day'       => (int) $b->booking_date->format('j'),
+                'lab_id'    => $b->lab_id,
+                'lab'       => optional($b->laboratory)->lab_name ?? '—',
+                'title'     => $b->purpose,
+                'time'      => Carbon::parse($b->start_time)->format('g:i A')
+                               . ' – '
+                               . Carbon::parse($b->end_time)->format('g:i A'),
+                'requestor' => $b->requestor_name,
+                'contact'   => $b->contact_number ?? '—',
+                'status'    => $b->booking_status,
+            ]);
     }
 
     /**

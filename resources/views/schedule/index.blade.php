@@ -5,12 +5,55 @@
 @section('content')
 <div class="space-y-6"
      x-data='{
-         showAddModal: false,
-         selectedDay: 15,
-         scheduledDays: @json($scheduledDays),
+         selectedDay: {{ $todayDay }},
+         selectedLabId: "all",
+         panelView: "day",
          schedules: @json($schedules),
+         bookings: @json($bookings),
+         get filteredSchedules() {
+             if (this.selectedLabId === "all") return this.schedules;
+             const id = parseInt(this.selectedLabId);
+             return this.schedules.filter(s => s.lab_id === id);
+         },
+         get filteredBookings() {
+             if (this.selectedLabId === "all") return this.bookings;
+             const id = parseInt(this.selectedLabId);
+             return this.bookings.filter(b => b.lab_id === id);
+         },
+         get scheduledDays() {
+             return [...new Set(this.filteredSchedules.map(s => s.day))];
+         },
+         get pendingDays() {
+             return [...new Set(this.filteredBookings.filter(b => b.status === "pending").map(b => b.day))];
+         },
+         get approvedDays() {
+             return [...new Set(this.filteredBookings.filter(b => b.status === "approved").map(b => b.day))];
+         },
          get selectedSchedules() {
-             return this.schedules.filter(s => s.day === this.selectedDay);
+             return this.filteredSchedules.filter(s => s.day === this.selectedDay);
+         },
+         get selectedBookings() {
+             return this.filteredBookings.filter(b => b.day === this.selectedDay && b.status !== "rejected");
+         },
+         get pendingBookings() {
+             return this.filteredBookings.filter(b => b.status === "pending");
+         },
+         get rejectedBookings() {
+             return this.filteredBookings.filter(b => b.status === "rejected");
+         },
+         showDay(day) {
+             this.selectedDay = day;
+             this.panelView = "day";
+         },
+         dayTooltip(day) {
+             const classes  = this.filteredSchedules.filter(s => s.day === day).length;
+             const pending  = this.filteredBookings.filter(b => b.day === day && b.status === "pending").length;
+             const approved = this.filteredBookings.filter(b => b.day === day && b.status === "approved").length;
+             const parts = [];
+             if (classes)  parts.push(classes  + " class"   + (classes  > 1 ? "es" : ""));
+             if (pending)  parts.push(pending  + " pending");
+             if (approved) parts.push(approved + " approved");
+             return parts.length ? parts.join(" · ") : "";
          }
      }'>
 
@@ -20,11 +63,18 @@
             <h1 class="text-primary text-2xl mb-1">Laboratory Schedule &amp; Booking</h1>
             <p class="text-muted text-sm">Manage laboratory reservations and class schedules</p>
         </div>
-        <button @click="showAddModal = true"
-                class="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors shadow-sm text-sm font-medium">
-            <x-icon name="plus" class="w-5 h-5" />
-            Add Reservation
-        </button>
+        <div class="flex items-center gap-2">
+            <a href="{{ route('schedule.create') }}"
+               class="flex items-center gap-2 px-6 py-3 bg-white border border-black/10 text-[#2c2c2c] rounded-lg hover:bg-surface transition-colors shadow-sm text-sm font-medium">
+                <x-icon name="plus" class="w-5 h-5" />
+                Add Class Schedule
+            </a>
+            <a href="{{ route('bookings.create') }}" target="_blank"
+               class="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors shadow-sm text-sm font-medium">
+                <x-icon name="plus" class="w-5 h-5" />
+                Add Reservation
+            </a>
+        </div>
     </div>
 
     {{-- Calendar + Detail --}}
@@ -32,19 +82,47 @@
 
         {{-- Calendar --}}
         <div class="flex-1 bg-white rounded-lg border border-black/10 shadow-sm p-6">
-            <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center justify-between mb-6 gap-4 flex-wrap">
                 <div class="flex items-center gap-3">
-                    <button class="p-2 hover:bg-surface rounded-lg transition-colors">
+                    <a href="{{ route('schedule', ['month' => $prevMonth]) }}"
+                       class="p-2 hover:bg-surface rounded-lg transition-colors block"
+                       title="Previous month">
                         <x-icon name="chevron-left" class="w-5 h-5 text-primary" />
-                    </button>
-                    <h2 class="text-primary text-lg">May 2026</h2>
-                    <button class="p-2 hover:bg-surface rounded-lg transition-colors">
+                    </a>
+                    <h2 class="text-primary text-lg">{{ $monthLabel }}</h2>
+                    <a href="{{ route('schedule', ['month' => $nextMonth]) }}"
+                       class="p-2 hover:bg-surface rounded-lg transition-colors block"
+                       title="Next month">
                         <x-icon name="chevron-right" class="w-5 h-5 text-primary" />
-                    </button>
+                    </a>
                 </div>
-                <div class="flex items-center gap-2 text-sm">
-                    <div class="w-3 h-3 bg-primary rounded-full"></div>
-                    <span class="text-muted">Scheduled</span>
+
+                <div class="flex items-center gap-4">
+                    {{-- Lab filter --}}
+                    <select x-model="selectedLabId"
+                            class="px-3 py-2 border border-black/10 rounded-lg bg-surface text-sm
+                                   focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer">
+                        <option value="all">All Laboratories</option>
+                        @foreach ($laboratories as $lab)
+                            <option value="{{ $lab->lab_id }}">{{ $lab->lab_name }}</option>
+                        @endforeach
+                    </select>
+
+                    {{-- Legend --}}
+                    <div class="flex items-center gap-3 text-xs">
+                        <div class="flex items-center gap-1.5">
+                            <div class="w-2.5 h-2.5 bg-primary rounded-sm"></div>
+                            <span class="text-muted">Class</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <div class="w-2.5 h-2.5 bg-accent rounded-sm"></div>
+                            <span class="text-muted">Pending</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <div class="w-2.5 h-2.5 bg-success rounded-sm"></div>
+                            <span class="text-muted">Approved</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -61,156 +139,297 @@
                     @if ($day === null)
                         <div></div>
                     @else
-                        <button @click="selectedDay = {{ $day }}"
+                        <button type="button"
+                                @click="selectedDay = {{ $day }}"
+                                :title="dayTooltip({{ $day }})"
                                 :class="selectedDay === {{ $day }}
                                     ? 'border-primary bg-primary/10 shadow-sm'
                                     : 'border-black/10 bg-white hover:bg-surface'"
                                 class="aspect-square rounded-lg border p-2 text-left transition-all">
-                            <span class="text-sm {{ in_array($day, $scheduledDays) ? 'font-semibold text-primary' : 'text-[#2c2c2c]' }}">{{ $day }}</span>
-                            @if (in_array($day, $scheduledDays))
-                                <div class="mt-1 space-y-0.5">
-                                    @for ($i = 0; $i < min(collect($schedules)->where('day', $day)->count(), 2); $i++)
-                                        <div class="w-full h-1 bg-primary rounded"></div>
-                                    @endfor
-                                </div>
-                            @endif
+
+                            <span class="text-sm"
+                                  :class="(scheduledDays.includes({{ $day }}) || pendingDays.includes({{ $day }}) || approvedDays.includes({{ $day }}))
+                                      ? 'font-semibold text-primary'
+                                      : 'text-[#2c2c2c]'">
+                                {{ $day }}
+                            </span>
+
+                            {{-- Indicator dots: maroon = class, amber = pending, green = approved --}}
+                            <div class="mt-1 flex items-center gap-1">
+                                <template x-if="scheduledDays.includes({{ $day }})">
+                                    <div class="w-1.5 h-1.5 bg-primary rounded-full"></div>
+                                </template>
+                                <template x-if="pendingDays.includes({{ $day }})">
+                                    <div class="w-1.5 h-1.5 bg-accent rounded-full"></div>
+                                </template>
+                                <template x-if="approvedDays.includes({{ $day }})">
+                                    <div class="w-1.5 h-1.5 bg-success rounded-full"></div>
+                                </template>
+                            </div>
                         </button>
                     @endif
                 @endforeach
             </div>
         </div>
 
-        {{-- Day Detail --}}
-        <div class="w-96 bg-white rounded-lg border border-black/10 shadow-sm p-6">
-            <h3 class="text-primary text-base mb-4">
-                May <span x-text="selectedDay"></span>, 2026
-            </h3>
+        {{-- Right Panel: Day View / Pending Requests --}}
+        <div class="w-96 bg-white rounded-lg border border-black/10 shadow-sm p-6 flex flex-col">
 
-            <template x-if="selectedSchedules.length > 0">
-                <div class="space-y-4">
-                    <template x-for="(schedule, idx) in selectedSchedules" :key="idx">
-                        <div class="border border-black/10 rounded-lg p-4 bg-surface hover:shadow-sm transition-shadow">
-                            <h4 class="text-primary text-sm font-semibold mb-3" x-text="schedule.title"></h4>
-                            <div class="space-y-2">
-                                <div class="flex items-start gap-2 text-sm">
-                                    <x-icon name="clock" class="w-4 h-4 text-muted mt-0.5 flex-shrink-0" />
-                                    <span class="text-[#2c2c2c]" x-text="schedule.time"></span>
-                                </div>
-                                <div class="flex items-start gap-2 text-sm">
-                                    <x-icon name="map-pin" class="w-4 h-4 text-muted mt-0.5 flex-shrink-0" />
-                                    <span class="inline-block px-2 py-0.5 bg-success text-white rounded text-xs font-medium" x-text="schedule.lab"></span>
-                                </div>
-                                <div class="flex items-start gap-2 text-sm">
-                                    <x-icon name="user" class="w-4 h-4 text-muted mt-0.5 flex-shrink-0" />
-                                    <span class="text-[#2c2c2c]" x-text="schedule.instructor"></span>
-                                </div>
-                                <div class="flex items-start gap-2 text-sm">
-                                    <x-icon name="phone" class="w-4 h-4 text-muted mt-0.5 flex-shrink-0" />
-                                    <span class="text-muted" x-text="schedule.contact"></span>
-                                </div>
+            {{-- Tabs --}}
+            <div class="flex gap-2 mb-4 border-b border-black/10 -mx-6 px-6 pb-3">
+                <button type="button"
+                        @click="panelView = 'day'"
+                        :class="panelView === 'day' ? 'bg-primary text-white' : 'bg-surface text-muted hover:text-primary'"
+                        class="px-3 py-1.5 rounded text-xs font-medium transition-colors">
+                    Day View
+                </button>
+                <button type="button"
+                        @click="panelView = 'pending'"
+                        :class="panelView === 'pending' ? 'bg-primary text-white' : 'bg-surface text-muted hover:text-primary'"
+                        class="px-3 py-1.5 rounded text-xs font-medium transition-colors flex items-center gap-1.5">
+                    Pending
+                    <span x-show="pendingBookings.length > 0"
+                          class="w-2 h-2 rounded-full bg-accent"></span>
+                </button>
+                <button type="button"
+                        @click="panelView = 'rejected'"
+                        :class="panelView === 'rejected' ? 'bg-primary text-white' : 'bg-surface text-muted hover:text-primary'"
+                        class="px-3 py-1.5 rounded text-xs font-medium transition-colors">
+                    Rejected
+                </button>
+            </div>
+
+            {{-- Flash message after approve/reject --}}
+            @if (session('success'))
+                <div class="mb-3 px-3 py-2 rounded bg-success/10 border border-success/30 text-xs text-success">
+                    {{ session('success') }}
+                </div>
+            @endif
+
+            {{-- ──────── DAY VIEW ──────── --}}
+            <template x-if="panelView === 'day'">
+                <div class="overflow-y-auto">
+                    <h3 class="text-primary text-base mb-4">
+                        {{ $monthShort }} <span x-text="selectedDay"></span>, {{ $displayYear }}
+                    </h3>
+
+                    {{-- Class Schedules --}}
+                    <template x-if="selectedSchedules.length > 0">
+                        <div class="mb-4">
+                            <p class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Class Schedules</p>
+                            <div class="space-y-3">
+                                <template x-for="(schedule, idx) in selectedSchedules" :key="'s-' + idx">
+                                    <div class="border border-black/10 rounded-lg p-4 bg-surface">
+                                        <h4 class="text-primary text-sm font-semibold mb-3" x-text="schedule.title"></h4>
+                                        <div class="space-y-2">
+                                            <div class="flex items-start gap-2 text-sm">
+                                                <x-icon name="clock" class="w-4 h-4 text-muted mt-0.5 flex-shrink-0" />
+                                                <span class="text-[#2c2c2c]" x-text="schedule.time"></span>
+                                            </div>
+                                            <div class="flex items-start gap-2 text-sm">
+                                                <x-icon name="map-pin" class="w-4 h-4 text-muted mt-0.5 flex-shrink-0" />
+                                                <span class="inline-block px-2 py-0.5 bg-success text-white rounded text-xs font-medium" x-text="schedule.lab"></span>
+                                            </div>
+                                            <div class="flex items-start gap-2 text-sm">
+                                                <x-icon name="user" class="w-4 h-4 text-muted mt-0.5 flex-shrink-0" />
+                                                <span class="text-[#2c2c2c]" x-text="schedule.instructor"></span>
+                                            </div>
+                                            <div class="flex items-start gap-2 text-sm">
+                                                <x-icon name="phone" class="w-4 h-4 text-muted mt-0.5 flex-shrink-0" />
+                                                <span class="text-muted" x-text="schedule.contact"></span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
                             </div>
+                        </div>
+                    </template>
+
+                    {{-- Reservations for the selected day --}}
+                    <template x-if="selectedBookings.length > 0">
+                        <div class="mb-4">
+                            <p class="text-xs font-semibold text-muted uppercase tracking-wide mb-2">Reservations</p>
+                            <div class="space-y-3">
+                                <template x-for="booking in selectedBookings" :key="'b-' + booking.id">
+                                    <div class="rounded-lg p-4 border"
+                                         :class="booking.status === 'approved'
+                                             ? 'border-success/40 bg-success/5'
+                                             : 'border-accent/40 bg-accent/5'">
+                                        <div class="flex items-start justify-between gap-2 mb-3">
+                                            <h4 class="text-primary text-sm font-semibold" x-text="booking.title"></h4>
+                                            <span class="text-xs px-2 py-0.5 rounded font-medium capitalize whitespace-nowrap"
+                                                  :class="booking.status === 'approved'
+                                                      ? 'bg-success text-white'
+                                                      : 'bg-accent text-[#2c2c2c]'"
+                                                  x-text="booking.status"></span>
+                                        </div>
+                                        <div class="space-y-2">
+                                            <div class="flex items-start gap-2 text-sm">
+                                                <x-icon name="clock" class="w-4 h-4 text-muted mt-0.5 flex-shrink-0" />
+                                                <span class="text-[#2c2c2c]" x-text="booking.time"></span>
+                                            </div>
+                                            <div class="flex items-start gap-2 text-sm">
+                                                <x-icon name="map-pin" class="w-4 h-4 text-muted mt-0.5 flex-shrink-0" />
+                                                <span class="inline-block px-2 py-0.5 bg-primary text-white rounded text-xs font-medium" x-text="booking.lab"></span>
+                                            </div>
+                                            <div class="flex items-start gap-2 text-sm">
+                                                <x-icon name="user" class="w-4 h-4 text-muted mt-0.5 flex-shrink-0" />
+                                                <span class="text-[#2c2c2c]" x-text="booking.requestor"></span>
+                                            </div>
+                                            <div class="flex items-start gap-2 text-sm">
+                                                <x-icon name="phone" class="w-4 h-4 text-muted mt-0.5 flex-shrink-0" />
+                                                <span class="text-muted" x-text="booking.contact"></span>
+                                            </div>
+                                        </div>
+
+                                        {{-- Approve/Reject only for pending --}}
+                                        <template x-if="booking.status === 'pending'">
+                                            <div class="flex gap-2 mt-3 pt-3 border-t border-accent/30">
+                                                <form method="POST" :action="`/bookings/${booking.id}/status`" class="flex-1">
+                                                    @csrf
+                                                    @method('PATCH')
+                                                    <input type="hidden" name="booking_status" value="approved">
+                                                    <button type="submit"
+                                                            class="w-full px-3 py-1.5 bg-success text-white rounded text-xs font-medium hover:bg-success-dark transition-colors">
+                                                        Approve
+                                                    </button>
+                                                </form>
+                                                <form method="POST" :action="`/bookings/${booking.id}/status`" class="flex-1"
+                                                      onsubmit="return confirm('Reject this reservation?');">
+                                                    @csrf
+                                                    @method('PATCH')
+                                                    <input type="hidden" name="booking_status" value="rejected">
+                                                    <button type="submit"
+                                                            class="w-full px-3 py-1.5 bg-white border border-black/10 text-[#2c2c2c] rounded text-xs font-medium hover:bg-surface transition-colors">
+                                                        Reject
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+
+                    {{-- Empty state --}}
+                    <template x-if="selectedSchedules.length === 0 && selectedBookings.length === 0">
+                        <div class="text-center py-12">
+                            <x-icon name="calendar" class="w-12 h-12 text-muted mx-auto mb-3 opacity-30" />
+                            <p class="text-muted text-sm">No events scheduled for this day</p>
                         </div>
                     </template>
                 </div>
             </template>
 
-            <template x-if="selectedSchedules.length === 0">
-                <div class="text-center py-12">
-                    <x-icon name="calendar" class="w-12 h-12 text-muted mx-auto mb-3 opacity-30" />
-                    <p class="text-muted text-sm">No events scheduled for this day</p>
+            {{-- ──────── PENDING VIEW ──────── --}}
+            <template x-if="panelView === 'pending'">
+                <div class="overflow-y-auto">
+                    <h3 class="text-primary text-base mb-4">Pending Requests</h3>
+
+                    <template x-if="pendingBookings.length === 0">
+                        <div class="text-center py-12">
+                            <x-icon name="calendar" class="w-12 h-12 text-muted mx-auto mb-3 opacity-30" />
+                            <p class="text-muted text-sm">No pending requests</p>
+                        </div>
+                    </template>
+
+                    <div class="space-y-3">
+                        <template x-for="booking in pendingBookings" :key="'p-' + booking.id">
+                            <div class="border border-accent/40 rounded-lg p-4 bg-accent/5">
+                                <div class="flex items-start justify-between gap-2 mb-2">
+                                    <h4 class="text-primary text-sm font-semibold" x-text="booking.title"></h4>
+                                    <button type="button"
+                                            @click="showDay(booking.day)"
+                                            class="text-xs text-primary hover:underline whitespace-nowrap">
+                                        Day <span x-text="booking.day"></span>
+                                    </button>
+                                </div>
+                                <div class="space-y-1.5 text-sm">
+                                    <div class="flex items-start gap-2">
+                                        <x-icon name="clock" class="w-4 h-4 text-muted mt-0.5 flex-shrink-0" />
+                                        <span class="text-[#2c2c2c]" x-text="booking.time"></span>
+                                    </div>
+                                    <div class="flex items-start gap-2">
+                                        <x-icon name="map-pin" class="w-4 h-4 text-muted mt-0.5 flex-shrink-0" />
+                                        <span class="inline-block px-2 py-0.5 bg-primary text-white rounded text-xs font-medium" x-text="booking.lab"></span>
+                                    </div>
+                                    <div class="flex items-start gap-2">
+                                        <x-icon name="user" class="w-4 h-4 text-muted mt-0.5 flex-shrink-0" />
+                                        <span class="text-[#2c2c2c]" x-text="booking.requestor"></span>
+                                    </div>
+                                </div>
+
+                                <div class="flex gap-2 mt-3 pt-3 border-t border-accent/30">
+                                    <form method="POST" :action="`/bookings/${booking.id}/status`" class="flex-1">
+                                        @csrf
+                                        @method('PATCH')
+                                        <input type="hidden" name="booking_status" value="approved">
+                                        <button type="submit"
+                                                class="w-full px-3 py-1.5 bg-success text-white rounded text-xs font-medium hover:bg-success-dark transition-colors">
+                                            Approve
+                                        </button>
+                                    </form>
+                                    <form method="POST" :action="`/bookings/${booking.id}/status`" class="flex-1"
+                                          onsubmit="return confirm('Reject this reservation?');">
+                                        @csrf
+                                        @method('PATCH')
+                                        <input type="hidden" name="booking_status" value="rejected">
+                                        <button type="submit"
+                                                class="w-full px-3 py-1.5 bg-white border border-black/10 text-[#2c2c2c] rounded text-xs font-medium hover:bg-surface transition-colors">
+                                            Reject
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
                 </div>
             </template>
+
+            {{-- ──────── REJECTED VIEW ──────── --}}
+            <template x-if="panelView === 'rejected'">
+                <div class="overflow-y-auto">
+                    <h3 class="text-primary text-base mb-4">Rejected Reservations</h3>
+
+                    <template x-if="rejectedBookings.length === 0">
+                        <div class="text-center py-12">
+                            <x-icon name="calendar" class="w-12 h-12 text-muted mx-auto mb-3 opacity-30" />
+                            <p class="text-muted text-sm">No rejected reservations</p>
+                        </div>
+                    </template>
+
+                    <div class="space-y-3">
+                        <template x-for="booking in rejectedBookings" :key="'r-' + booking.id">
+                            <div class="border border-black/10 rounded-lg p-4 bg-surface opacity-75">
+                                <div class="flex items-start justify-between gap-2 mb-2">
+                                    <h4 class="text-[#2c2c2c] text-sm font-semibold line-through" x-text="booking.title"></h4>
+                                    <span class="text-xs px-2 py-0.5 rounded font-medium bg-red-100 text-red-700 whitespace-nowrap">
+                                        Rejected
+                                    </span>
+                                </div>
+                                <div class="space-y-1.5 text-sm">
+                                    <div class="flex items-start gap-2">
+                                        <x-icon name="clock" class="w-4 h-4 text-muted mt-0.5 flex-shrink-0" />
+                                        <span class="text-muted" x-text="`Day ${booking.day} — ${booking.time}`"></span>
+                                    </div>
+                                    <div class="flex items-start gap-2">
+                                        <x-icon name="map-pin" class="w-4 h-4 text-muted mt-0.5 flex-shrink-0" />
+                                        <span class="inline-block px-2 py-0.5 bg-black/10 text-[#2c2c2c] rounded text-xs font-medium" x-text="booking.lab"></span>
+                                    </div>
+                                    <div class="flex items-start gap-2">
+                                        <x-icon name="user" class="w-4 h-4 text-muted mt-0.5 flex-shrink-0" />
+                                        <span class="text-muted" x-text="booking.requestor"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </template>
+
         </div>
 
-    </div>
-
-    {{-- Add Reservation Modal --}}
-    <div x-show="showAddModal"
-         x-cloak
-         x-transition:enter="transition ease-out duration-200"
-         x-transition:enter-start="opacity-0"
-         x-transition:enter-end="opacity-100"
-         x-transition:leave="transition ease-in duration-150"
-         x-transition:leave-start="opacity-100"
-         x-transition:leave-end="opacity-0"
-         class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-6">
-
-        <div @click.outside="showAddModal = false"
-             class="bg-white rounded-xl w-full max-w-2xl shadow-2xl">
-
-            <div class="flex items-center justify-between p-6 border-b border-black/10">
-                <div>
-                    <h2 class="text-primary text-lg">Add Reservation</h2>
-                    <p class="text-sm text-muted mt-0.5">Create a new laboratory booking</p>
-                </div>
-                <button @click="showAddModal = false" class="p-2 hover:bg-surface rounded-lg transition-colors">
-                    <x-icon name="x" class="w-5 h-5 text-muted" />
-                </button>
-            </div>
-
-            <form class="p-6 space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-[#2c2c2c] mb-2">Requestor's Name</label>
-                    <input type="text" placeholder="Enter full name"
-                           class="w-full px-4 py-3 border border-black/10 rounded-lg bg-surface text-sm
-                                  focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-[#2c2c2c] mb-2">Contact Information</label>
-                    <input type="text" placeholder="Email or phone number"
-                           class="w-full px-4 py-3 border border-black/10 rounded-lg bg-surface text-sm
-                                  focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-[#2c2c2c] mb-2">Purpose</label>
-                    <textarea rows="3" placeholder="Describe the purpose of reservation"
-                              class="w-full px-4 py-3 border border-black/10 rounded-lg bg-surface text-sm
-                                     focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all resize-none"></textarea>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-[#2c2c2c] mb-2">Preferred Date</label>
-                        <input type="date"
-                               class="w-full px-4 py-3 border border-black/10 rounded-lg bg-surface text-sm
-                                      focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-[#2c2c2c] mb-2">Target Laboratory</label>
-                        <select class="w-full px-4 py-3 border border-black/10 rounded-lg bg-surface text-sm
-                                       focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer">
-                            <option>Lab A - Room 301</option>
-                            <option>Lab B - Room 302</option>
-                            <option>Lab C - Room 303</option>
-                            <option>Lab D - Room 304</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-[#2c2c2c] mb-2">Start Time</label>
-                        <input type="time"
-                               class="w-full px-4 py-3 border border-black/10 rounded-lg bg-surface text-sm
-                                      focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-[#2c2c2c] mb-2">End Time</label>
-                        <input type="time"
-                               class="w-full px-4 py-3 border border-black/10 rounded-lg bg-surface text-sm
-                                      focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
-                    </div>
-                </div>
-            </form>
-
-            <div class="p-6 border-t border-black/10 flex justify-end gap-3">
-                <button @click="showAddModal = false"
-                        class="px-6 py-3 border border-black/10 rounded-lg hover:bg-surface transition-colors text-sm">
-                    Cancel
-                </button>
-                <button class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors text-sm font-medium">
-                    Submit Request
-                </button>
-            </div>
-        </div>
     </div>
 
 </div>

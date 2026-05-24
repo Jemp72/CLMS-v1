@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Booking;
 use App\Models\Laboratory;
 use App\Services\BookingService;
 use Illuminate\Http\Request;
@@ -11,45 +10,20 @@ class BookingController extends Controller
 {
     public function __construct(protected BookingService $bookingService) {}
 
-    public function index(Request $request)
+    /**
+     * Show the public reservation form (no login required).
+     */
+    public function create()
     {
-        $filters = $request->validate([
-            'lab_id'       => 'nullable|integer|exists:laboratories,lab_id',
-            'status'       => 'nullable|in:pending,approved,rejected,completed',
-            'booking_date' => 'nullable|date',
-            'from'         => 'nullable|date',
-            'to'           => 'nullable|date|after_or_equal:from',
-        ]);
+        $laboratories = Laboratory::orderBy('lab_name')->get();
 
-        $bookings = $this->bookingService->getBookings($filters);
-
-        return response()->json($bookings);
+        return view('bookings.reserve', compact('laboratories'));
     }
 
     /**
-     * Convenience endpoint for fetching bookings of a specific lab.
+     * Handle a reservation submission.
+     * Accepts browser form submits and JSON API calls.
      */
-    public function byLab(int $labId, Request $request)
-    {
-        $filters = $request->validate([
-            'status'       => 'nullable|in:pending,approved,rejected,completed',
-            'booking_date' => 'nullable|date',
-            'from'         => 'nullable|date',
-            'to'           => 'nullable|date|after_or_equal:from',
-        ]);
-
-        $filters['lab_id'] = $labId;
-
-        return response()->json($this->bookingService->getBookings($filters));
-    }
-
-    public function show(int $id)
-    {
-        $booking = Booking::with(['laboratory', 'approver'])->findOrFail($id);
-
-        return response()->json($booking);
-    }
-
     public function store(Request $request)
     {
         $data = $request->validate([
@@ -68,16 +42,32 @@ class BookingController extends Controller
             $data['start_time'],
             $data['end_time']
         )) {
-            return response()->json([
-                'message' => 'The laboratory is not available during the requested time.',
-            ], 422);
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'The laboratory is not available during the requested time.',
+                ], 422);
+            }
+
+            return back()
+                ->withInput()
+                ->withErrors(['general' => 'The laboratory is not available during the requested time.']);
         }
 
         $booking = $this->bookingService->createBooking($data);
 
-        return response()->json($booking->load('laboratory'), 201);
+        if ($request->expectsJson()) {
+            return response()->json($booking->load('laboratory'), 201);
+        }
+
+        return redirect()
+            ->route('bookings.create')
+            ->with('success', 'Your reservation request has been submitted and is awaiting approval.');
     }
 
+    /**
+     * Approve / reject / complete a booking.
+     * Called by the admin from the /schedule view.
+     */
     public function updateStatus(Request $request, int $id)
     {
         $data = $request->validate([
@@ -85,20 +75,25 @@ class BookingController extends Controller
             'approved_by'    => 'nullable|integer|exists:system_users,system_user_id',
         ]);
 
+        // Fallback to logged-in admin id from session (once real auth is wired).
+        $approvedBy = $data['approved_by'] ?? session('user_id');
+
         $booking = $this->bookingService->updateStatus(
             $id,
             $data['booking_status'],
-            $data['approved_by'] ?? null
+            $approvedBy
         );
 
-        return response()->json($booking->load(['laboratory', 'approver']));
-    }
+        if ($request->expectsJson()) {
+            return response()->json($booking->load(['laboratory', 'approver']));
+        }
 
-    public function destroy(int $id)
-    {
-        $booking = Booking::findOrFail($id);
-        $booking->delete();
+        $verbs = [
+            'approved'  => 'approved',
+            'rejected'  => 'rejected',
+            'completed' => 'marked as completed',
+        ];
 
-        return response()->json(['message' => 'Booking deleted.']);
+        return back()->with('success', "Reservation #{$booking->booking_id} has been {$verbs[$data['booking_status']]}.");
     }
 }
