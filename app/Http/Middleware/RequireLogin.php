@@ -10,9 +10,9 @@ class RequireLogin
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (! session('logged_in')) {
-            return redirect()->route('login');
-        }
+        // if (! session('logged_in')) {
+        //     return redirect()->route('login');
+        // }
 
         return $next($request);
     }
