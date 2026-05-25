@@ -1,5 +1,7 @@
-CREATE DATABASE AppSysComlabManagementSystem;
-USE AppSysComlabManagementSystem;
+-- Active: 1778912274940@@127.0.0.1@3306@clms_v1
+DROP DATABASE clms_v1;
+CREATE DATABASE clms_v1;
+USE clms_v1;
 
 -- =========================================
 -- SYSTEM USERS
@@ -73,7 +75,9 @@ CREATE TABLE students (
     first_name VARCHAR(50) NOT NULL,
     last_name VARCHAR(50) NOT NULL,
     middle_name VARCHAR(50),
-    suffix VARCHAR(5)
+    suffix VARCHAR(5),
+
+    deleted_at DATETIME NULL
 );
 
 -- =========================================
@@ -97,7 +101,9 @@ CREATE TABLE guest_logs (
     guest_name VARCHAR(150) NOT NULL,
     organization VARCHAR(150),
     contact_number VARCHAR(30),
-    purpose VARCHAR(255)
+    purpose VARCHAR(255),
+
+    deleted_at DATETIME NULL
 );
 
 -- =========================================
@@ -180,11 +186,11 @@ CREATE TABLE lab_utilization_logs (
 
     FOREIGN KEY (student_id)
         REFERENCES students(student_id)
-        ON DELETE SET NULL,
+        ON DELETE CASCADE,
 
     FOREIGN KEY (guest_log_id)
         REFERENCES guest_logs(guest_log_id)
-        ON DELETE SET NULL,
+        ON DELETE CASCADE,
 
     FOREIGN KEY (instructor_id)
         REFERENCES system_users(system_user_id)
@@ -304,3 +310,71 @@ CREATE TABLE bookings (
         REFERENCES system_users(system_user_id)
         ON DELETE SET NULL
 );
+
+-- =========================================
+-- SOFT DELETE PROCEDURES
+-- =========================================
+-- First call  → soft delete (sets deleted_at)
+-- Second call → hard delete (purges the row + cascades lab_utilization_logs)
+--
+-- MySQL BEFORE DELETE triggers can block deletion via SIGNAL SQLSTATE,
+-- but cannot UPDATE the triggering table in the same statement, so the
+-- soft/hard logic lives here in procedures instead.
+
+DELIMITER $$
+
+CREATE PROCEDURE delete_student(IN p_student_id VARCHAR(30))
+BEGIN
+    DECLARE v_deleted_at DATETIME DEFAULT NULL;
+
+    SELECT deleted_at INTO v_deleted_at
+    FROM students
+    WHERE student_id = p_student_id;
+
+    IF v_deleted_at IS NULL THEN
+        UPDATE students SET deleted_at = NOW() WHERE student_id = p_student_id;
+    ELSE
+        DELETE FROM students WHERE student_id = p_student_id;
+    END IF;
+END$$
+
+CREATE PROCEDURE delete_guest_log(IN p_guest_log_id INT)
+BEGIN
+    DECLARE v_deleted_at DATETIME DEFAULT NULL;
+
+    SELECT deleted_at INTO v_deleted_at
+    FROM guest_logs
+    WHERE guest_log_id = p_guest_log_id;
+
+    IF v_deleted_at IS NULL THEN
+        UPDATE guest_logs SET deleted_at = NOW() WHERE guest_log_id = p_guest_log_id;
+    ELSE
+        DELETE FROM guest_logs WHERE guest_log_id = p_guest_log_id;
+    END IF;
+END$$
+
+DELIMITER ;
+
+-- =========================================
+-- VIEWS
+-- =========================================
+
+CREATE VIEW view_students AS
+    SELECT student_id, first_name, last_name, middle_name, suffix
+    FROM students
+    WHERE deleted_at IS NULL;
+
+CREATE VIEW view_student_archives AS
+    SELECT student_id, first_name, last_name, middle_name, suffix, deleted_at
+    FROM students
+    WHERE deleted_at IS NOT NULL;
+
+CREATE VIEW view_guest_logs AS
+    SELECT guest_log_id, guest_name, organization, contact_number, purpose
+    FROM guest_logs
+    WHERE deleted_at IS NULL;
+
+CREATE VIEW view_guest_log_archives AS
+    SELECT guest_log_id, guest_name, organization, contact_number, purpose, deleted_at
+    FROM guest_logs
+    WHERE deleted_at IS NOT NULL;
