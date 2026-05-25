@@ -58,19 +58,19 @@
      }'>
 
     {{-- Header --}}
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
             <h1 class="text-primary text-2xl mb-1">Laboratory Schedule &amp; Booking</h1>
             <p class="text-muted text-sm">Manage laboratory reservations and class schedules</p>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
             <a href="{{ route('schedule.create') }}"
-               class="flex items-center gap-2 px-6 py-3 bg-white border border-black/10 text-[#2c2c2c] rounded-lg hover:bg-surface transition-colors shadow-sm text-sm font-medium">
+               class="flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-white border border-black/10 text-[#2c2c2c] rounded-lg hover:bg-surface transition-colors shadow-sm text-sm font-medium">
                 <x-icon name="plus" class="w-5 h-5" />
                 Add Class Schedule
             </a>
             <a href="{{ route('bookings.create') }}" target="_blank"
-               class="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors shadow-sm text-sm font-medium">
+               class="flex items-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors shadow-sm text-sm font-medium">
                 <x-icon name="plus" class="w-5 h-5" />
                 Add Reservation
             </a>
@@ -78,7 +78,7 @@
     </div>
 
     {{-- Calendar + Detail --}}
-    <div class="flex gap-6">
+    <div class="flex flex-col xl:flex-row gap-6">
 
         {{-- Calendar --}}
         <div class="flex-1 bg-white rounded-lg border border-black/10 shadow-sm p-6">
@@ -173,7 +173,7 @@
         </div>
 
         {{-- Right Panel: Day View / Pending Requests --}}
-        <div class="w-96 bg-white rounded-lg border border-black/10 shadow-sm p-6 flex flex-col">
+        <div class="w-full xl:w-96 bg-white rounded-lg border border-black/10 shadow-sm p-6 flex flex-col">
 
             {{-- Tabs --}}
             <div class="flex gap-2 mb-4 border-b border-black/10 -mx-6 px-6 pb-3">

@@ -12,12 +12,12 @@
     </div>
 
     {{-- Stat Cards --}}
-    <div class="grid grid-cols-4 gap-6">
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
         <div class="bg-white p-6 rounded-lg border border-black/10 shadow-sm">
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-muted text-sm mb-1">Total Students</p>
-                    <p class="text-3xl font-heading font-semibold text-[#2c2c2c]">1,248</p>
+                    <p class="text-3xl font-heading font-semibold text-[#2c2c2c]">{{ number_format($totalStudents) }}</p>
                 </div>
                 <x-icon name="users" class="w-10 h-10 text-primary" />
             </div>
@@ -27,7 +27,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-muted text-sm mb-1">Active Now</p>
-                    <p class="text-3xl font-heading font-semibold text-[#2c2c2c]">47</p>
+                    <p class="text-3xl font-heading font-semibold text-[#2c2c2c]">{{ number_format($activeNow) }}</p>
                 </div>
                 <x-icon name="activity" class="w-10 h-10 text-success" />
             </div>
@@ -37,7 +37,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-muted text-sm mb-1">Total Equipment</p>
-                    <p class="text-3xl font-heading font-semibold text-[#2c2c2c]">{{ $totalEquipment }}</p>
+                    <p class="text-3xl font-heading font-semibold text-[#2c2c2c]">{{ number_format($totalEquipment) }}</p>
                 </div>
                 <x-icon name="package" class="w-10 h-10 text-primary" />
             </div>
@@ -47,7 +47,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <p class="text-muted text-sm mb-1">Low Stock Items</p>
-                    <p class="text-3xl font-heading font-semibold text-[#2c2c2c]">{{ count($lowStockItems) }}</p>
+                    <p class="text-3xl font-heading font-semibold text-[#2c2c2c]">{{ number_format($lowStockCount) }}</p>
                 </div>
                 <x-icon name="alert-circle" class="w-10 h-10 text-warning" />
             </div>
@@ -55,7 +55,7 @@
     </div>
 
     {{-- Two-Column Panel --}}
-    <div class="grid grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
         {{-- Activity Logs --}}
         <div class="bg-white rounded-lg border border-black/10 shadow-sm">
@@ -66,7 +66,7 @@
                 </div>
             </div>
             <div class="divide-y divide-black/5">
-                @foreach ($activityLogs as $log)
+                @forelse ($activityLogs as $log)
                     <div class="p-4 hover:bg-surface transition-colors">
                         <div class="flex items-start gap-3">
                             <div class="flex-shrink-0 mt-0.5">
@@ -85,7 +85,12 @@
                             <span class="text-xs text-muted flex-shrink-0">{{ $log['timestamp'] }}</span>
                         </div>
                     </div>
-                @endforeach
+                @empty
+                    <div class="p-8 text-center">
+                        <x-icon name="activity" class="w-10 h-10 text-muted mx-auto mb-2 opacity-30" />
+                        <p class="text-sm text-muted">No activity yet</p>
+                    </div>
+                @endforelse
             </div>
             <div class="p-4 border-t border-black/10 bg-surface text-center">
                 <a href="{{ route('logbook') }}" class="text-sm text-primary hover:underline">View All Activity Logs</a>
@@ -101,28 +106,30 @@
                 </div>
             </div>
             <div class="divide-y divide-black/5">
-                @foreach ($lowStockItems as $item)
+                @forelse ($lowStockItems as $item)
                     <div class="p-4 hover:bg-surface transition-colors">
-                        <div class="flex items-start justify-between mb-2">
+                        <div class="flex items-start justify-between">
                             <div class="flex-1 min-w-0 mr-3">
                                 <p class="text-sm text-[#2c2c2c] mb-0.5">{{ $item['item'] }}</p>
                                 <p class="text-xs text-muted">{{ $item['category'] }}</p>
                             </div>
                             @if ($item['status'] === 'critical')
-                                <span class="inline-block px-2 py-1 bg-primary text-white rounded text-xs flex-shrink-0">Critical</span>
+                                <span class="inline-block px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium flex-shrink-0">
+                                    {{ $item['label'] }}
+                                </span>
                             @else
-                                <span class="inline-block px-2 py-1 bg-warning text-[#2c2c2c] rounded text-xs flex-shrink-0">Low Stock</span>
+                                <span class="inline-block px-2 py-1 bg-warning/20 text-[#7a5d00] rounded text-xs font-medium flex-shrink-0">
+                                    {{ $item['label'] }}
+                                </span>
                             @endif
                         </div>
-                        <div class="flex items-center gap-2">
-                            <div class="flex-1 bg-surface rounded-full h-2">
-                                <div class="h-2 rounded-full {{ $item['status'] === 'critical' ? 'bg-primary' : 'bg-warning' }}"
-                                     style="width: {{ $item['percentage'] }}%"></div>
-                            </div>
-                            <span class="text-xs text-muted flex-shrink-0">{{ $item['quantity'] }}/{{ $item['threshold'] }}</span>
-                        </div>
                     </div>
-                @endforeach
+                @empty
+                    <div class="p-8 text-center">
+                        <x-icon name="check-circle" class="w-10 h-10 text-success mx-auto mb-2 opacity-50" />
+                        <p class="text-sm text-muted">All supplies are well-stocked</p>
+                    </div>
+                @endforelse
             </div>
             <div class="p-4 border-t border-black/10 bg-surface text-center">
                 <a href="{{ route('inventory') }}" class="text-sm text-primary hover:underline">View Full Inventory</a>

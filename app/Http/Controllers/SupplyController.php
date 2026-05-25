@@ -2,7 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Http\Requests\StoreSupplyRequest;
+use App\Http\Requests\UpdateSupplyRequest;
 use Illuminate\Support\Facades\DB;
 
 class SupplyController extends Controller
@@ -23,41 +24,19 @@ class SupplyController extends Controller
         'out_of_stock',
     ];
 
-    public function store(Request $request)
+    public function store(StoreSupplyRequest $request)
     {
-        if (session('role') !== 'admin') {
-            abort(403);
-        }
-
-        $data = $request->validate([
-            'supply_name' => 'required|string|max:100',
-            'category'    => 'required|in:Stationery,Cleaning,Ink & Toner,Cables,Tools,Other',
-            'status'      => 'required|in:fully_stocked,in_stock,low_stock,out_of_stock',
-            'unit'        => 'nullable|string|max:30',
-            'remarks'     => 'nullable|string|max:255',
-        ]);
-
-        DB::table('office_supplies')->insert($data);
+        DB::table('office_supplies')->insert($request->validated());
 
         return redirect()->route('inventory', ['tab' => 'supplies'])
             ->with('success', 'Supply item added successfully.');
     }
 
-    public function update(Request $request, int $id)
+    public function update(UpdateSupplyRequest $request, int $id)
     {
-        if (session('role') !== 'admin') {
-            abort(403);
-        }
-
-        $data = $request->validate([
-            'supply_name' => 'required|string|max:100',
-            'category'    => 'required|in:Stationery,Cleaning,Ink & Toner,Cables,Tools,Other',
-            'status'      => 'required|in:fully_stocked,in_stock,low_stock,out_of_stock',
-            'unit'        => 'nullable|string|max:30',
-            'remarks'     => 'nullable|string|max:255',
-        ]);
-
-        DB::table('office_supplies')->where('supply_id', $id)->update($data);
+        DB::table('office_supplies')
+            ->where('supply_id', $id)
+            ->update($request->validated());
 
         return redirect()->route('inventory', ['tab' => 'supplies'])
             ->with('success', 'Supply item updated successfully.');
@@ -65,10 +44,6 @@ class SupplyController extends Controller
 
     public function destroy(int $id)
     {
-        if (session('role') !== 'admin') {
-            abort(403);
-        }
-
         DB::table('office_supplies')->where('supply_id', $id)->delete();
 
         return redirect()->route('inventory', ['tab' => 'supplies'])

@@ -6,7 +6,7 @@
 <div class="space-y-6">
 
     {{-- Header --}}
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
             <div class="flex items-baseline gap-3">
                 <h1 class="text-primary text-2xl">Instructors</h1>
@@ -18,7 +18,7 @@
             <p class="text-muted text-sm mt-1">Manage instructors assignable to class schedules</p>
         </div>
         <a href="{{ route('instructors.create') }}"
-           class="flex items-center gap-2 px-4 py-2.5 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors shadow-sm text-sm font-medium">
+           class="flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors shadow-sm text-sm font-medium whitespace-nowrap">
             <x-icon name="plus" class="w-4 h-4" />
             Add Instructor
         </a>
