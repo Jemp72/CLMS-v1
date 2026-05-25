@@ -285,8 +285,12 @@
                                           :class="statusClass(item.equipment_status)"
                                           x-text="statusLabel(item.equipment_status)"></span>
                                 </td>
-                                <td class="px-5 py-3 text-sm text-[#2c2c2c]" x-text="item.preventive_maintenance_done ? '✔' : '—'"></td>
-                                <td class="px-5 py-3 text-sm text-[#2c2c2c]" x-text="item.calibration_done ? '✔' : '—'"></td>
+                                <td class="px-5 py-3 text-sm text-[#2c2c2c]">
+                                    <span x-text="item.preventive_maintenance_done ? 'Yes' : 'No'"></span>
+                                </td>
+                                <td class="px-5 py-3 text-sm text-[#2c2c2c]">
+                                    <span x-text="item.calibration_done ? 'Yes' : 'No'"></span>
+                                </td>
                                 <td class="px-5 py-3">
                                     <div class="flex items-center gap-1">
                                         <button @click="openQR(item)" title="View / Print QR Code"

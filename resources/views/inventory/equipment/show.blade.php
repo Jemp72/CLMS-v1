@@ -43,17 +43,8 @@
             text-align: left;
         }
         .status-btn:active { transform: scale(0.98); }
-        .status-btn.selected-available  { border-color: #22c55e; background: #f0fdf4; color: #166534; }
-        .status-btn.selected-in-use     { border-color: #2563eb; background: #eff6ff; color: #1e40af; }
-        .status-btn.selected-maintenance{ border-color: #eab308; background: #fefce8; color: #713f12; }
-        .status-btn.selected-damaged    { border-color: #6b7280; background: #f9fafb; color: #374151; }
-        .dot {
-            width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
-        }
-        .dot-available   { background: #22c55e; }
-        .dot-in-use      { background: #2563eb; }
-        .dot-maintenance { background: #eab308; }
-        .dot-damaged     { background: #6b7280; }
+        .status-btn.selected { border-color: #8b1832; background: rgba(139, 24, 50, 0.05); color: #8b1832; }
+
 
         /* Toggle switch */
         .toggle-track {
@@ -144,11 +135,15 @@
         </div>
         <div class="detail-row">
             <span class="detail-label">Preventive Maintenance (PM)</span>
-            <span class="detail-value">{{ $equipment->preventive_maintenance_done ? '✔ Done' : '— Pending' }}</span>
+            <span class="detail-value">
+                {{ $equipment->preventive_maintenance_done ? 'Yes' : 'No' }}
+            </span>
         </div>
         <div class="detail-row">
             <span class="detail-label">Calibration (CAL)</span>
-            <span class="detail-value">{{ ($equipment->calibration_done ?? false) ? '✔ Done' : '— Pending' }}</span>
+            <span class="detail-value">
+                {{ ($equipment->calibration_done ?? false) ? 'Yes' : 'No' }}
+            </span>
         </div>
         @if ($equipment->remarks)
         <div class="detail-row">
@@ -168,10 +163,10 @@
             <div class="space-y-2 mb-5" id="status-options">
                 @php
                     $statuses = [
-                        'available'   => ['label' => 'Available',    'desc' => 'Equipment is ready to use',          'dot' => 'dot-available'],
-                        'in-use'      => ['label' => 'In Use',       'desc' => 'Currently being used',               'dot' => 'dot-in-use'],
-                        'maintenance' => ['label' => 'Maintenance',  'desc' => 'Under repair or preventive check',   'dot' => 'dot-maintenance'],
-                        'damaged'     => ['label' => 'Damaged',      'desc' => 'Equipment is broken or defective',   'dot' => 'dot-damaged'],
+                        'available'   => ['label' => 'Available',    'desc' => 'Equipment is ready to use'],
+                        'in-use'      => ['label' => 'In Use',       'desc' => 'Currently being used'],
+                        'maintenance' => ['label' => 'Maintenance',  'desc' => 'Under repair or preventive check'],
+                        'damaged'     => ['label' => 'Damaged',      'desc' => 'Equipment is broken or defective'],
                     ];
                 @endphp
 
@@ -181,9 +176,8 @@
                            class="sr-only"
                            {{ $equipment->equipment_status === $value ? 'checked' : '' }}
                            onchange="updateSelection(this)">
-                    <div class="status-btn {{ $equipment->equipment_status === $value ? 'selected-' . $value : '' }}"
+                    <div class="status-btn {{ $equipment->equipment_status === $value ? 'selected' : '' }}"
                          id="btn-{{ $value }}">
-                        <span class="dot {{ $info['dot'] }}"></span>
                         <div>
                             <div>{{ $info['label'] }}</div>
                             <div style="font-size:11px;font-weight:400;opacity:0.65;margin-top:1px">{{ $info['desc'] }}</div>
@@ -202,9 +196,8 @@
                     <span class="text-sm text-[#2c2c2c] font-medium">Preventive Maintenance (PM)</span>
                     <input type="checkbox" name="preventive_maintenance_done" value="1"
                            class="sr-only" id="pm-toggle"
-                           {{ $equipment->preventive_maintenance_done ? 'checked' : '' }}
                            onchange="toggleTrack(this, 'pm-track')">
-                    <div class="toggle-track {{ $equipment->preventive_maintenance_done ? 'active' : '' }}" id="pm-track" onclick="document.getElementById('pm-toggle').click()">
+                    <div class="toggle-track {{ $equipment->preventive_maintenance_done ? 'active' : '' }}" id="pm-track">
                         <div class="toggle-knob"></div>
                     </div>
                 </label>
@@ -212,9 +205,8 @@
                     <span class="text-sm text-[#2c2c2c] font-medium">Calibration (CAL)</span>
                     <input type="checkbox" name="calibration_done" value="1"
                            class="sr-only" id="cal-toggle"
-                           {{ ($equipment->calibration_done ?? false) ? 'checked' : '' }}
                            onchange="toggleTrack(this, 'cal-track')">
-                    <div class="toggle-track {{ ($equipment->calibration_done ?? false) ? 'active' : '' }}" id="cal-track" onclick="document.getElementById('cal-toggle').click()">
+                    <div class="toggle-track {{ ($equipment->calibration_done ?? false) ? 'active' : '' }}" id="cal-track">
                         <div class="toggle-knob"></div>
                     </div>
                 </label>
@@ -243,7 +235,7 @@
         document.querySelectorAll('.status-btn').forEach(function(btn) {
             btn.className = 'status-btn';
         });
-        document.getElementById('btn-' + radio.value).classList.add('selected-' + radio.value);
+        document.getElementById('btn-' + radio.value).classList.add('selected');
     }
     function toggleTrack(checkbox, trackId) {
         var track = document.getElementById(trackId);
