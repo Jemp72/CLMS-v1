@@ -32,7 +32,7 @@ class ClassSchedule extends Model
 
     public function instructor()
     {
-        return $this->belongsTo(SystemUser::class, 'instructor_id');
+        return $this->belongsTo(Instructor::class, 'instructor_id');
     }
 
     public function laboratory()

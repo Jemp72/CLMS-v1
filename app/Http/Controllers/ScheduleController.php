@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\AcademicTerm;
 use App\Models\Course;
+use App\Models\Instructor;
 use App\Models\Laboratory;
-use App\Models\SystemUser;
 use App\Services\BookingService;
 use App\Services\ScheduleService;
 use Carbon\Carbon;
@@ -82,7 +82,7 @@ class ScheduleController extends Controller
     {
         return view('schedule.create', [
             'courses'      => Course::orderBy('course_code')->get(),
-            'instructors'  => SystemUser::where('role_type', 'instructor')->orderBy('last_name')->get(),
+            'instructors'  => Instructor::orderBy('last_name')->orderBy('first_name')->get(),
             'laboratories' => Laboratory::orderBy('lab_name')->get(),
             'terms'        => AcademicTerm::orderBy('start_date', 'desc')->get(),
         ]);
@@ -95,7 +95,7 @@ class ScheduleController extends Controller
     {
         $data = $request->validate([
             'course_id'     => 'required|integer|exists:courses,course_id',
-            'instructor_id' => 'required|integer|exists:system_users,system_user_id',
+            'instructor_id' => 'required|integer|exists:instructors,instructor_id',
             'lab_id'        => 'required|integer|exists:laboratories,lab_id',
             'day_of_week'   => 'required|in:Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday',
             'time_start'    => 'required|date_format:H:i',

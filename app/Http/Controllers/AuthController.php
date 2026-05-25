@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\SystemUser;
+use App\Http\Requests\LoginRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
@@ -18,17 +17,17 @@ class AuthController extends Controller
         return view('auth.login');
     }
 
-    public function login(Request $request)
+    /**
+     * Authenticate against system_users. Validation is delegated to LoginRequest
+     * to match the rest of the modules (booking, logging, enrollment).
+     */
+    public function login(LoginRequest $request)
     {
-        $request->validate([
-            'email' => 'required|email',
-            'password' => 'required',
-        ]);
+        $data = $request->validated();
 
-        if (! Auth::attempt(['email' => $request->email, 'password' => $request->password])) {
-            return redirect()
-                ->back()
-                ->withInput()
+        if (! Auth::attempt(['email' => $data['email'], 'password' => $data['password']])) {
+            return back()
+                ->withInput($request->only('email'))
                 ->withErrors(['email' => 'Invalid email or password.']);
         }
 
@@ -37,11 +36,12 @@ class AuthController extends Controller
         $user = Auth::user();
 
         session([
-            'logged_in' => true,
-            'role' => $user->role_type,
-            'user_name' => trim($user->first_name . ' ' . $user->last_name),
-            'user_email' => $user->email,
-            'user_avatar' => strtoupper(substr($user->first_name, 0, 1) . substr($user->last_name, 0, 1)),
+            'logged_in'   => true,
+            'user_id'     => $user->system_user_id,
+            'user_name'   => trim($user->first_name . ' ' . $user->last_name),
+            'user_email'  => $user->email,
+            'user_avatar' => strtoupper(substr($user->first_name ?? '', 0, 1)
+                                       . substr($user->last_name ?? '', 0, 1)),
         ]);
 
         return redirect()->route('dashboard');
@@ -55,19 +55,5 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('login');
-    }
-
-    public function switchRole(Request $request)
-    {
-        $newRole = session('role') === 'admin' ? 'instructor' : 'admin';
-
-        session([
-            'role' => $newRole,
-            'user_name' => $newRole === 'admin' ? 'Administrator' : 'Prof. Juan Reyes',
-            'user_email' => $newRole === 'admin' ? 'admin@usep.edu.ph' : 'jreyes@usep.edu.ph',
-            'user_avatar' => $newRole === 'admin' ? 'AD' : 'JR',
-        ]);
-
-        return redirect()->route('dashboard');
     }
 }
