@@ -11,6 +11,7 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->trustProxies(at: '*');
         // The public logging terminal is a kiosk that stays open for hours.
         // CSRF tokens would expire (419 "page expired") between sign-in and sign-out,
         // so exclude those routes from CSRF verification.
