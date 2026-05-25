@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\SystemUser;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
@@ -22,13 +25,23 @@ class AuthController extends Controller
             'password' => 'required',
         ]);
 
-        // Demo: accept any credentials
+        if (! Auth::attempt(['email' => $request->email, 'password' => $request->password])) {
+            return redirect()
+                ->back()
+                ->withInput()
+                ->withErrors(['email' => 'Invalid email or password.']);
+        }
+
+        $request->session()->regenerate();
+
+        $user = Auth::user();
+
         session([
             'logged_in' => true,
-            'role' => 'admin',
-            'user_name' => 'Administrator',
-            'user_email' => 'admin@usep.edu.ph',
-            'user_avatar' => 'AD',
+            'role' => $user->role_type,
+            'user_name' => trim($user->first_name . ' ' . $user->last_name),
+            'user_email' => $user->email,
+            'user_avatar' => strtoupper(substr($user->first_name, 0, 1) . substr($user->last_name, 0, 1)),
         ]);
 
         return redirect()->route('dashboard');
@@ -36,7 +49,10 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        $request->session()->flush();
+        Auth::logout();
+
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
         return redirect()->route('login');
     }
