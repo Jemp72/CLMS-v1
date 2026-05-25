@@ -134,34 +134,16 @@
              });
          },
 
-         printQRLabel() {
-             if (!this.selectedEquipment || typeof QRCode === "undefined") return;
-
-             const label = document.getElementById("qr-print-label");
-             const qrEl  = document.getElementById("qr-print-canvas");
-
-             // Fill in label text
-             document.getElementById("print-eq-no").textContent   = this.selectedEquipment.equipment_no;
-             document.getElementById("print-eq-name").textContent = this.selectedEquipment.equipment_name;
-             document.getElementById("print-eq-sn").textContent   = this.selectedEquipment.serial_no ? "SN: " + this.selectedEquipment.serial_no : "";
-             document.getElementById("print-eq-lab").textContent  = this.selectedEquipment.lab_name;
-
-             // Generate QR into the print canvas
-             qrEl.innerHTML = "";
-             const url = `{{ url('/inventory/equipment') }}/${this.selectedEquipment.equipment_id}`;
-             new QRCode(qrEl, {
-                 text:         url,
-                 width:        200,
-                 height:       200,
-                 colorDark:    "#000000",
-                 colorLight:   "#ffffff",
-                 correctLevel: QRCode.CorrectLevel.H
-             });
-
-             // Wait for QR to render, then print
-             this.$nextTick(() => {
-                 setTimeout(() => window.print(), 200);
-             });
+         downloadQR() {
+             if (!this.selectedEquipment) return;
+             var canvas = document.querySelector("#qr-canvas canvas");
+             if (!canvas) return;
+             var link = document.createElement("a");
+             link.download = "QR-" + this.selectedEquipment.equipment_no + ".png";
+             link.href = canvas.toDataURL("image/png");
+             document.body.appendChild(link);
+             link.click();
+             document.body.removeChild(link);
          }
      }'
      x-init='$watch("showQR", v => { if (v) generateQR("qr-canvas"); })'>
@@ -185,7 +167,7 @@
             <p class="text-muted text-sm">Physical count records for equipment and consumable supplies</p>
         </div>
         <div class="flex items-center gap-3">
-            <a href="{{ route('inventory.print', ['tab' => 'activeTab']) }}" target="_blank"
+            <a :href="'{{ route('inventory.print') }}?tab=' + activeTab" target="_blank"
                class="flex items-center gap-2 px-4 py-2 border border-black/10 rounded-lg hover:bg-surface transition-colors text-sm text-[#2c2c2c]">
                 <x-icon name="download" class="w-4 h-4" />
                 Print List
@@ -281,6 +263,8 @@
                             <th class="px-5 py-3 text-left text-xs font-semibold text-[#2c2c2c] uppercase tracking-wide">Type</th>
                             <th class="px-5 py-3 text-left text-xs font-semibold text-[#2c2c2c] uppercase tracking-wide">Lab</th>
                             <th class="px-5 py-3 text-left text-xs font-semibold text-[#2c2c2c] uppercase tracking-wide">Status</th>
+                            <th class="px-5 py-3 text-left text-xs font-semibold text-[#2c2c2c] uppercase tracking-wide">PM</th>
+                            <th class="px-5 py-3 text-left text-xs font-semibold text-[#2c2c2c] uppercase tracking-wide">CAL</th>
                             <th class="px-5 py-3 text-left text-xs font-semibold text-[#2c2c2c] uppercase tracking-wide">Actions</th>
                         </tr>
                     </thead>
@@ -301,6 +285,8 @@
                                           :class="statusClass(item.equipment_status)"
                                           x-text="statusLabel(item.equipment_status)"></span>
                                 </td>
+                                <td class="px-5 py-3 text-sm text-[#2c2c2c]" x-text="item.preventive_maintenance_done ? '✔' : '—'"></td>
+                                <td class="px-5 py-3 text-sm text-[#2c2c2c]" x-text="item.calibration_done ? '✔' : '—'"></td>
                                 <td class="px-5 py-3">
                                     <div class="flex items-center gap-1">
                                         <button @click="openQR(item)" title="View / Print QR Code"
@@ -323,7 +309,7 @@
                         </template>
                         <template x-if="filteredEquipment.length === 0">
                             <tr>
-                                <td colspan="8" class="px-5 py-12 text-center text-sm text-muted">
+                                <td colspan="10" class="px-5 py-12 text-center text-sm text-muted">
                                     No equipment found matching your filters.
                                 </td>
                             </tr>
@@ -547,6 +533,16 @@
                                class="w-full px-4 py-2.5 border border-black/10 rounded-lg bg-surface text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
                     </div>
                 </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" name="preventive_maintenance_done" value="1" class="w-4 h-4 text-primary focus:ring-primary/20 border-black/20 rounded">
+                        <span class="text-sm font-medium text-[#2c2c2c]">PM Done</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" name="calibration_done" value="1" class="w-4 h-4 text-primary focus:ring-primary/20 border-black/20 rounded">
+                        <span class="text-sm font-medium text-[#2c2c2c]">CAL Done</span>
+                    </label>
+                </div>
                 <div>
                     <label class="block text-sm font-medium text-[#2c2c2c] mb-1.5">Remarks</label>
                     <textarea name="remarks" rows="2" placeholder="Optional notes..."
@@ -648,6 +644,16 @@
                                class="w-full px-4 py-2.5 border border-black/10 rounded-lg bg-surface text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
                     </div>
                 </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" name="preventive_maintenance_done" value="1" class="w-4 h-4 text-primary focus:ring-primary/20 border-black/20 rounded" :checked="selectedEquipment?.preventive_maintenance_done">
+                        <span class="text-sm font-medium text-[#2c2c2c]">PM Done</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" name="calibration_done" value="1" class="w-4 h-4 text-primary focus:ring-primary/20 border-black/20 rounded" :checked="selectedEquipment?.calibration_done">
+                        <span class="text-sm font-medium text-[#2c2c2c]">CAL Done</span>
+                    </label>
+                </div>
                 <div>
                     <label class="block text-sm font-medium text-[#2c2c2c] mb-1.5">Remarks</label>
                     <textarea name="remarks" rows="2" :value="selectedEquipment?.remarks || ''"
@@ -727,10 +733,10 @@
                     </div>
                 </div>
                 <div class="flex gap-2 w-full">
-                    <button @click="printQRLabel()"
+                    <button @click="downloadQR()"
                             class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors text-xs font-medium">
                         <x-icon name="download" class="w-3.5 h-3.5" />
-                        Print Label
+                        Download QR Code
                     </button>
                 </div>
             </div>
@@ -937,14 +943,7 @@
     </div>
 
 
-    <div id="qr-print-label" class="hidden print:flex flex-col items-center justify-center fixed inset-0 bg-white z-[9999] p-8">
-        <p class="text-xs uppercase tracking-widest text-gray-400 mb-2" style="font-family:monospace">USeP CLMS — Inventory</p>
-        <div id="qr-print-canvas" class="my-3"></div>
-        <p id="print-eq-no" class="text-lg font-bold text-black mt-2" style="font-family:monospace"></p>
-        <p id="print-eq-name" class="text-sm text-gray-700"></p>
-        <p id="print-eq-sn" class="text-xs text-gray-500 mt-1"></p>
-        <p id="print-eq-lab" class="text-xs text-gray-500"></p>
-    </div>
+
 
 </div>
 @endsection
@@ -952,26 +951,4 @@
 @push('modals')
 {{-- davidshimjs/qrcodejs — https://davidshimjs.github.io/qrcodejs/ --}}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<style>
-    @media print {
-        /* Hide everything except the QR label */
-        body * { visibility: hidden !important; }
-        #qr-print-label,
-        #qr-print-label * {
-            visibility: visible !important;
-        }
-        #qr-print-label {
-            position: fixed !important;
-            inset: 0 !important;
-            display: flex !important;
-            flex-direction: column !important;
-            align-items: center !important;
-            justify-content: center !important;
-            background: white !important;
-        }
-        #qr-print-canvas canvas {
-            display: none !important;
-        }
-    }
-</style>
 @endpush

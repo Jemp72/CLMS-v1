@@ -31,7 +31,7 @@ class AuthController extends Controller
             'user_avatar' => 'AD',
         ]);
 
-        return redirect()->route('dashboard');
+        return redirect()->intended(route('dashboard'));
     }
 
     public function logout(Request $request)

@@ -2,228 +2,220 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inventory Summary — USeP CLMS</title>
+    <title>{{ $tab === 'equipment' ? 'Equipment' : 'Supplies' }} Masterlist — Print</title>
     <style>
-        /* ── Reset ── */
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-        /* ── Base ── */
+        @page { size: landscape; margin: 0.5in; }
         body {
-            font-family: 'Segoe UI', Arial, sans-serif;
+            font-family: Arial, sans-serif;
             font-size: 11px;
-            color: #1a1a1a;
-            background: #fff;
-            padding: 24px 32px;
+            color: #000;
+            margin: 0;
+            padding: 0;
         }
-
-        /* ── Header ── */
-        .report-header {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            border-bottom: 2px solid #2c2c2c;
-            padding-bottom: 12px;
+        /* Header Table */
+        .doc-header {
+            width: 100%;
+            border-collapse: collapse;
             margin-bottom: 20px;
         }
-        .report-header h1 { font-size: 18px; font-weight: 700; color: #1a1a1a; margin-bottom: 2px; }
-        .report-header p  { font-size: 10px; color: #555; }
-        .report-meta      { text-align: right; font-size: 10px; color: #555; }
-        .report-meta strong { color: #1a1a1a; }
-
-        /* ── Section ── */
-        .section        { margin-bottom: 28px; }
-        .section-title  { font-size: 13px; font-weight: 700; color: #1a1a1a; text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 0; border-bottom: 1px solid #ccc; margin-bottom: 10px; }
-        .group-title    { font-size: 11px; font-weight: 600; color: #555; margin: 10px 0 4px; }
-
-        /* ── Table ── */
-        table { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
-        thead th {
-            background: #f5f5f5;
-            text-align: left;
-            font-size: 9px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: #555;
-            padding: 5px 8px;
-            border-bottom: 1px solid #ddd;
+        .doc-header td {
+            border: 1px solid #000;
+            vertical-align: middle;
         }
-        tbody td {
-            padding: 5px 8px;
-            border-bottom: 1px solid #f0f0f0;
+        .logo-cell {
+            width: 120px;
+            text-align: center;
+            padding: 10px;
+        }
+        .logo-cell img {
+            max-width: 90px;
+            height: auto;
+        }
+        .univ-info-cell {
+            text-align: center;
+            padding: 10px;
+            line-height: 1.3;
+        }
+        .univ-name {
+            font-family: "Times New Roman", Times, serif;
+            font-size: 18px;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+        .meta-cell {
+            width: 250px;
+            padding: 0;
             vertical-align: top;
-            color: #2c2c2c;
         }
-        tbody tr:last-child td { border-bottom: none; }
-        .mono { font-family: 'Courier New', monospace; }
-
-        /* ── Badges ── */
-        .badge {
-            display: inline-block;
-            padding: 1px 6px;
-            border-radius: 3px;
-            font-size: 9px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
+        .meta-table {
+            width: 100%;
+            border-collapse: collapse;
         }
-        .badge-ok         { background: #d1fae5; color: #065f46; }
-        .badge-low        { background: #fef9c3; color: #713f12; }
-        .badge-out        { background: #fee2e2; color: #991b1b; }
-        .badge-available  { background: #d1fae5; color: #065f46; }
-        .badge-in-use     { background: #dbeafe; color: #1e40af; }
-        .badge-maintenance{ background: #fef9c3; color: #713f12; }
-        .badge-damaged    { background: #f3f4f6; color: #374151; }
-        .badge-pm-done    { background: #d1fae5; color: #065f46; }
-        .badge-pm-pending { background: #f3f4f6; color: #6b7280; }
-
-        /* ── Summary row ── */
-        .summary-row { display: flex; gap: 24px; margin-bottom: 16px; }
-        .summary-item { text-align: center; padding: 8px 16px; border: 1px solid #e5e5e5; border-radius: 6px; }
-        .summary-item .num { font-size: 20px; font-weight: 700; color: #1a1a1a; }
-        .summary-item .lbl { font-size: 9px; text-transform: uppercase; color: #888; letter-spacing: 0.05em; }
-
-        /* ── Empty ── */
-        .empty { padding: 12px; text-align: center; color: #aaa; font-style: italic; font-size: 10px; }
-
-        /* ── Footer ── */
-        .report-footer {
-            border-top: 1px solid #ccc;
-            margin-top: 24px;
-            padding-top: 10px;
-            display: flex;
-            justify-content: space-between;
-            font-size: 9px;
-            color: #999;
-        }
-
-        /* ── Print button (screen-only) ── */
-        .print-btn {
-            position: fixed;
-            top: 16px;
-            right: 16px;
-            background: #1a1a1a;
-            color: #fff;
+        .meta-table td {
             border: none;
-            padding: 8px 18px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            z-index: 100;
+            border-bottom: 1px solid #000;
+            padding: 4px 8px;
+            font-size: 10px;
         }
-        .print-btn:hover { background: #333; }
+        .meta-table tr:last-child td {
+            border-bottom: none;
+        }
+        .meta-table td:first-child {
+            border-right: 1px solid #000;
+            width: 40%;
+        }
+
+        .doc-title-row td {
+            text-align: center;
+            padding: 8px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        .updated-date {
+            font-weight: normal;
+            font-size: 11px;
+            display: block;
+            margin-top: 4px;
+        }
+
+        /* Masterlist Table */
+        .masterlist-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .masterlist-table th, .masterlist-table td {
+            border: 1px solid #000;
+            padding: 6px;
+            text-align: center;
+            vertical-align: middle;
+        }
+        .masterlist-table th {
+            text-transform: uppercase;
+            font-weight: normal;
+            font-size: 10px;
+            background-color: #fff;
+        }
+        .masterlist-table td {
+            font-size: 11px;
+        }
+        .text-left { text-align: left !important; }
+        .empty-row td { height: 22px; }
+
+        /* No-print toolbar */
+        .no-print {
+            margin-bottom: 20px;
+            padding: 10px;
+            background: #f3f4f6;
+            text-align: right;
+            border-radius: 4px;
+        }
+        .no-print button {
+            padding: 8px 16px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        .btn-print { background: #800000; color: white; border: none; }
+        .btn-close { background: #fff; border: 1px solid #ccc; margin-left: 8px; }
 
         @media print {
-            .print-btn { display: none; }
-            body { padding: 12px 16px; }
+            .no-print { display: none; }
         }
-
-        @page { margin: 12mm; }
     </style>
 </head>
-<body>
+<body onload="window.print()">
 
-<button class="print-btn" onclick="window.print()">🖨 Print</button>
-
-{{-- ── Report Header ── --}}
-<div class="report-header">
-    <div>
-        <h1>Inventory Summary Report</h1>
-        <p>University of Southeastern Philippines — Computer Lab Management System</p>
-        <p>This document serves as an official record of laboratory equipment and consumable supplies.</p>
+    <div class="no-print">
+        <button class="btn-print" onclick="window.print()">Print Now</button>
+        <button class="btn-close" onclick="window.close()">Close</button>
     </div>
-    <div class="report-meta">
-        <div><strong>Generated:</strong> {{ now()->format('F d, Y — h:i A') }}</div>
-        <div><strong>Prepared by:</strong> {{ session('name', session('email', 'Admin')) }}</div>
-    </div>
-</div>
 
-{{-- ── Summary Totals ── --}}
-@php
-    $totalEq  = collect($equipmentByType)->flatten(1)->count();
-    $totalSup = collect($suppliesByCategory)->flatten(1)->count();
-    $lowStock = collect($suppliesByCategory)->flatten(1)->filter(fn($s) => in_array($s['status'], ['low_stock', 'out_of_stock']))->count();
-@endphp
-<div class="summary-row">
-    <div class="summary-item"><div class="num">{{ $totalEq }}</div><div class="lbl">Equipment Items</div></div>
-    <div class="summary-item"><div class="num">{{ $totalSup }}</div><div class="lbl">Supply Items</div></div>
-    <div class="summary-item"><div class="num">{{ $lowStock }}</div><div class="lbl">Low / Out of Stock</div></div>
-</div>
+    <!-- Document Header -->
+    <table class="doc-header">
+        <tr>
+            <td class="logo-cell">
+                <img src="{{ asset('images/usep-logo.png') }}" alt="USeP Logo">
+            </td>
+            <td class="univ-info-cell">
+                <div>Republic of the Philippines</div>
+                <div class="univ-name">University of Southeastern Philippines</div>
+                <div>Iñigo St., Bo. Obrero, Davao City 8000</div>
+                <div>Telephone: (082) 227-8192</div>
+                <div>Website: www.usep.edu.ph</div>
+                <div>Email: president@usep.edu.ph</div>
+            </td>
+            <td class="meta-cell">
+                <table class="meta-table">
+                    <tr><td>Form No.</td><td>PM-USeP-PMS-01a</td></tr>
+                    <tr><td>Issue Status</td><td>02</td></tr>
+                    <tr><td>Revision No.</td><td>01</td></tr>
+                    <tr><td>Date Effective</td><td>01 March 2018</td></tr>
+                    <tr><td>Approved by</td><td>President</td></tr>
+                </table>
+            </td>
+        </tr>
+        <tr class="doc-title-row">
+            <td colspan="3">
+                MASTERLIST OF {{ $tab === 'equipment' ? 'EQUIPMENT' : 'SUPPLIES' }}
+                <span class="updated-date">Updated as of: {{ date('F d, Y') }}</span>
+            </td>
+        </tr>
+    </table>
 
-{{-- ════════════════════════════════════════════════════
-     SECTION 1 — EQUIPMENT / HARDWARE
-════════════════════════════════════════════════════ --}}
-<div class="section">
-    <div class="section-title">Section 1 — Equipment / Hardware</div>
-
-    @forelse ($equipmentByType as $typeName => $items)
-    <div class="group-title">{{ $typeName }}</div>
-    <table>
+    <!-- Main List Table -->
+    @if ($tab === 'equipment')
+    <table class="masterlist-table">
         <thead>
             <tr>
-                <th style="width:80px">Equip. No.</th>
-                <th style="width:100px">Serial No.</th>
-                <th>Item Name</th>
-                <th>Brand / Model</th>
-                <th style="width:80px">Laboratory</th>
-                <th style="width:70px">Status</th>
-                <th style="width:40px">Qty</th>
-                <th style="width:55px">PM</th>
-                <th>Remarks</th>
+                <th rowspan="2" style="width: 40px;">NO.</th>
+                <th rowspan="2" style="width: 100px;">EQUIPMENT NO.</th>
+                <th rowspan="2" class="text-left">EQUIPMENT'S NAME</th>
+                <th rowspan="2" class="text-left" style="width: 150px;">MODEL NAME/NUMBER</th>
+                <th rowspan="2" style="width: 120px;">AREA ASSIGNMENT</th>
+                <th colspan="2">NEEDS</th>
+                <th rowspan="2" style="width: 100px;">STATUS</th>
+            </tr>
+            <tr>
+                <th style="width: 40px;">PM</th>
+                <th style="width: 40px;">CAL</th>
             </tr>
         </thead>
         <tbody>
-            @foreach ($items as $eq)
+            @forelse ($equipmentRows as $i => $eq)
             <tr>
-                <td class="mono">{{ $eq['equipment_no'] }}</td>
-                <td class="mono">{{ $eq['serial_no'] ?: '—' }}</td>
-                <td><strong>{{ $eq['equipment_name'] }}</strong></td>
-                <td>{{ $eq['brand'] ?: '' }}{{ ($eq['brand'] && $eq['model_number']) ? ' / ' : '' }}{{ $eq['model_number'] ?: '' }}{{ (!$eq['brand'] && !$eq['model_number']) ? '—' : '' }}</td>
+                <td>{{ $i + 1 }}</td>
+                <td>{{ $eq['equipment_no'] }}</td>
+                <td class="text-left">{{ $eq['equipment_name'] }}</td>
+                <td class="text-left">{{ $eq['brand'] ? $eq['brand'] . ' / ' : '' }}{{ $eq['model_number'] ?: '' }}{{ (!$eq['brand'] && !$eq['model_number']) ? '—' : '' }}</td>
                 <td>{{ $eq['lab_name'] }}</td>
-                <td>
-                    <span class="badge badge-{{ str_replace(' ', '-', $eq['equipment_status']) }}">
-                        {{ ucfirst(str_replace('-', ' ', $eq['equipment_status'])) }}
-                    </span>
-                </td>
-                <td class="mono" style="text-align:center">{{ $eq['quantity'] }}</td>
-                <td>
-                    @if ($eq['preventive_maintenance_done'])
-                    <span class="badge badge-pm-done">Done</span>
-                    @else
-                    <span class="badge badge-pm-pending">Pending</span>
-                    @endif
-                </td>
-                <td>{{ $eq['remarks'] ?: '—' }}</td>
+                <td>{{ $eq['preventive_maintenance_done'] ? '✔' : '' }}</td>
+                <td>{{ ($eq['calibration_done'] ?? false) ? '✔' : '' }}</td>
+                <td>{{ ucfirst(str_replace('-', ' ', $eq['equipment_status'])) }}</td>
             </tr>
-            @endforeach
+            @empty
+            {{-- Show empty table structure even with no data --}}
+            @endforelse
+            @for ($i = 0; $i < max(5, 10 - count($equipmentRows)); $i++)
+            <tr class="empty-row">
+                <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+            </tr>
+            @endfor
         </tbody>
     </table>
-    @empty
-    <div class="empty">No equipment records found.</div>
-    @endforelse
-</div>
 
-{{-- ════════════════════════════════════════════════════
-     SECTION 2 — CONSUMABLE SUPPLIES
-════════════════════════════════════════════════════ --}}
-<div class="section">
-    <div class="section-title">Section 2 — Consumable Supplies</div>
-
-    @forelse ($suppliesByCategory as $category => $items)
-    <div class="group-title">{{ $category }}</div>
-    <table>
+    @else
+    <table class="masterlist-table">
         <thead>
             <tr>
-                <th>Supply Name</th>
-                <th style="width:50px">Unit</th>
-                <th style="width:80px">Status</th>
-                <th>Remarks</th>
+                <th style="width: 40px;">NO.</th>
+                <th class="text-left">SUPPLY NAME</th>
+                <th style="width: 120px;">CATEGORY</th>
+                <th style="width: 80px;">UNIT</th>
+                <th style="width: 120px;">STATUS</th>
+                <th class="text-left" style="width: 200px;">REMARKS</th>
             </tr>
         </thead>
         <tbody>
-            @foreach ($items as $sup)
             @php
                 $statusLabels = [
                     'fully_stocked' => 'Fully Stocked',
@@ -231,35 +223,27 @@
                     'low_stock'     => 'Low Stock',
                     'out_of_stock'  => 'Out of Stock',
                 ];
-                $statusBadges = [
-                    'fully_stocked' => 'badge-ok',
-                    'in_stock'      => 'badge-available',
-                    'low_stock'     => 'badge-low',
-                    'out_of_stock'  => 'badge-out',
-                ];
-                $badge = $statusBadges[$sup['status']] ?? 'badge-ok';
-                $label = $statusLabels[$sup['status']] ?? $sup['status'];
             @endphp
+            @forelse ($suppliesRows as $i => $sup)
             <tr>
-                <td><strong>{{ $sup['supply_name'] }}</strong></td>
+                <td>{{ $i + 1 }}</td>
+                <td class="text-left">{{ $sup['supply_name'] }}</td>
+                <td>{{ $sup['category'] }}</td>
                 <td>{{ $sup['unit'] ?: '—' }}</td>
-                <td><span class="badge {{ $badge }}">{{ $label }}</span></td>
-                <td>{{ $sup['remarks'] ?: '—' }}</td>
+                <td>{{ $statusLabels[$sup['status']] ?? $sup['status'] }}</td>
+                <td class="text-left">{{ $sup['remarks'] ?: '—' }}</td>
             </tr>
-            @endforeach
+            @empty
+            {{-- Show empty table structure even with no data --}}
+            @endforelse
+            @for ($i = 0; $i < max(5, 10 - count($suppliesRows)); $i++)
+            <tr class="empty-row">
+                <td></td><td></td><td></td><td></td><td></td><td></td>
+            </tr>
+            @endfor
         </tbody>
     </table>
-    @empty
-    <div class="empty">No supply records found.</div>
-    @endforelse
-</div>
-
-{{-- ── Footer ── --}}
-<div class="report-footer">
-    <span>USeP — Computer Lab Management System</span>
-    <span>Generated: {{ now()->format('Y-m-d H:i:s') }}</span>
-    <span>Confidential — For internal use only</span>
-</div>
+    @endif
 
 </body>
 </html>

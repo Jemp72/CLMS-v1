@@ -21,10 +21,12 @@ Route::middleware(RequireLogin::class)->group(function () {
     Route::get('/schedule', [ScheduleController::class, 'index'])->name('schedule');
     Route::get('/inventory', [InventoryController::class, 'index'])->name('inventory');
     Route::get('/inventory/print', [InventoryController::class, 'print'])->name('inventory.print');
+    
+    // QR Code Scanning Route (Requires Login)
+    Route::get('/inventory/equipment/{id}', [EquipmentController::class, 'show'])->name('equipment.show');
 
     // Equipment CRUD
     Route::post('/inventory/equipment', [EquipmentController::class, 'store'])->name('equipment.store');
-    Route::get('/inventory/equipment/{id}', [EquipmentController::class, 'show'])->name('equipment.show');
     Route::post('/inventory/equipment/{id}/status', [EquipmentController::class, 'updateStatus'])->name('equipment.update.status');
     Route::put('/inventory/equipment/{id}', [EquipmentController::class, 'update'])->name('equipment.update');
     Route::delete('/inventory/equipment/{id}', [EquipmentController::class, 'destroy'])->name('equipment.destroy');

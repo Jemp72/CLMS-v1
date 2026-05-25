@@ -17,6 +17,10 @@ class EquipmentController extends Controller
 
     public function show(int $id)
     {
+        if (session('role') !== 'admin') {
+            abort(403, 'Only administrators can access equipment details.');
+        }
+
         $equipment = DB::table('equipments')
             ->join('laboratories', 'equipments.lab_id', '=', 'laboratories.lab_id')
             ->select(
@@ -49,8 +53,13 @@ class EquipmentController extends Controller
             'quantity'                    => 'required|integer|min:1',
             'lab_id'                      => 'required|integer|exists:laboratories,lab_id',
             'parent_equipment_id'         => 'nullable|integer|exists:equipments,equipment_id',
+            'preventive_maintenance_done' => 'sometimes|boolean',
+            'calibration_done'            => 'sometimes|boolean',
             'remarks'                     => 'nullable|string|max:255',
         ]);
+
+        $data['preventive_maintenance_done'] = $request->has('preventive_maintenance_done') ? 1 : 0;
+        $data['calibration_done']            = $request->has('calibration_done') ? 1 : 0;
 
         DB::table('equipments')->insert($data);
 
@@ -75,8 +84,13 @@ class EquipmentController extends Controller
             'quantity'                    => 'required|integer|min:1',
             'lab_id'                      => 'required|integer|exists:laboratories,lab_id',
             'parent_equipment_id'         => 'nullable|integer|exists:equipments,equipment_id',
+            'preventive_maintenance_done' => 'sometimes|boolean',
+            'calibration_done'            => 'sometimes|boolean',
             'remarks'                     => 'nullable|string|max:255',
         ]);
+
+        $data['preventive_maintenance_done'] = $request->has('preventive_maintenance_done') ? 1 : 0;
+        $data['calibration_done']            = $request->has('calibration_done') ? 1 : 0;
 
         DB::table('equipments')->where('equipment_id', $id)->update($data);
 
@@ -86,10 +100,19 @@ class EquipmentController extends Controller
 
     public function updateStatus(Request $request, int $id)
     {
-        // Any logged-in user can update status via QR scan
+        if (session('role') !== 'admin') {
+            abort(403);
+        }
+
         $data = $request->validate([
             'equipment_status'            => 'required|in:available,in-use,maintenance,damaged',
+            'preventive_maintenance_done' => 'sometimes|boolean',
+            'calibration_done'            => 'sometimes|boolean',
         ]);
+
+        // Ensure checkbox booleans default to false when unchecked
+        $data['preventive_maintenance_done'] = $request->has('preventive_maintenance_done') ? 1 : 0;
+        $data['calibration_done']            = $request->has('calibration_done') ? 1 : 0;
 
         DB::table('equipments')->where('equipment_id', $id)->update($data);
 

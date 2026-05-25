@@ -65,34 +65,29 @@ class InventoryController extends Controller
         ));
     }
 
-    public function print()
+    public function print(\Illuminate\Http\Request $request)
     {
-        // Equipment grouped by type then lab
-        $equipmentByType = [];
-        $rows = DB::table('equipments')
-            ->join('laboratories', 'equipments.lab_id', '=', 'laboratories.lab_id')
-            ->select('equipments.*', 'laboratories.lab_name')
-            ->orderBy('equipment_type')
-            ->orderBy('lab_name')
-            ->orderBy('equipment_name')
-            ->get();
+        $tab = $request->query('tab', 'equipment');
 
-        foreach ($rows as $row) {
-            $type = EquipmentController::TYPE_LABELS[$row->equipment_type] ?? $row->equipment_type;
-            $equipmentByType[$type][] = (array) $row;
+        $equipmentRows = [];
+        $suppliesRows = [];
+
+        if ($tab === 'equipment') {
+            $equipmentRows = DB::table('equipments')
+                ->join('laboratories', 'equipments.lab_id', '=', 'laboratories.lab_id')
+                ->select('equipments.*', 'laboratories.lab_name')
+                ->orderBy('equipment_name')
+                ->get()
+                ->map(fn($e) => (array) $e)
+                ->toArray();
+        } else {
+            $suppliesRows = DB::table('office_supplies')
+                ->orderBy('supply_name')
+                ->get()
+                ->map(fn($s) => (array) $s)
+                ->toArray();
         }
 
-        // Supplies grouped by category
-        $suppliesByCategory = [];
-        $supplyRows = DB::table('office_supplies')
-            ->orderBy('category')
-            ->orderBy('supply_name')
-            ->get();
-
-        foreach ($supplyRows as $row) {
-            $suppliesByCategory[$row->category][] = (array) $row;
-        }
-
-        return view('inventory.print', compact('equipmentByType', 'suppliesByCategory'));
+        return view('inventory.print', compact('tab', 'equipmentRows', 'suppliesRows'));
     }
 }
