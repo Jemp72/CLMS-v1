@@ -170,7 +170,9 @@
 
     {{-- ── Flash message ────────────────────────────────────────────────────── --}}
     @if (session('success'))
-    <div class="flex items-center gap-3 p-4 bg-success/10 border border-success/30 rounded-lg">
+    <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 4000)" x-show="show" 
+         x-transition:leave="transition ease-in duration-300" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+         class="flex items-center gap-3 p-4 bg-success/10 border border-success/30 rounded-lg">
         <x-icon name="check-circle" class="w-4 h-4 text-success flex-shrink-0" />
         <p class="text-sm text-success">{{ session('success') }}</p>
     </div>
