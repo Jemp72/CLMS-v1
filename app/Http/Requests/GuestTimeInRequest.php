@@ -17,31 +17,22 @@ class GuestTimeInRequest extends FormRequest
             'guest_name' => [
                 'required',
                 'string',
-                'max:150'
+                'max:150',
             ],
 
-            'organization' => [
-                'nullable',
-                'string',
-                'max:150'
-            ],
-
-            'contact_number' => [
-                'nullable',
-                'string',
-                'max:30'
-            ],
-
-            'purpose' => [
+            'booked_under' => [
                 'required',
                 'string',
-                'max:255'
+                'max:150',
             ],
+        ];
+    }
 
-            'lab_id' => [
-                'required',
-                'exists:laboratories,lab_id'
-            ],
+    public function messages(): array
+    {
+        return [
+            'guest_name.required'   => 'Please enter your full name.',
+            'booked_under.required' => 'Please enter the name on the reservation.',
         ];
     }
 }

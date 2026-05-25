@@ -4,8 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\GuestTimeInRequest;
 use App\Http\Requests\StudentTimeInRequest;
-use App\Http\Requests\StudentTimeOutRequest;
-use App\Models\LabUtilizationLog;
+use App\Http\Requests\TimeOutRequest;
 use App\Models\Laboratory;
 use App\Services\LoggingService;
 use Illuminate\Http\Request;
@@ -30,14 +29,15 @@ class LogbookController extends Controller
     }
 
     /**
-     * Student Time In
+     * Student Time In — only requires the student number.
+     * The service auto-fills lab / purpose / instructor from the active class.
      */
     public function studentTimeIn(StudentTimeInRequest $request)
     {
         try {
 
             $this->loggingService->studentTimeIn(
-                $request->validated()
+                $request->student_id
             );
 
             return redirect()
@@ -54,19 +54,19 @@ class LogbookController extends Controller
     }
 
     /**
-     * Student Time Out
+     * Unified Time Out — handles both students and visitors.
      */
-    public function studentTimeOut(StudentTimeOutRequest $request)
+    public function timeOut(TimeOutRequest $request)
     {
         try {
 
-            $this->loggingService->studentTimeOut(
-                $request->student_id
+            $this->loggingService->timeOut(
+                $request->identifier
             );
 
             return redirect()
                 ->back()
-                ->with('success', 'Student successfully logged out.');
+                ->with('success', 'Successfully signed out. Have a great day!');
 
         } catch (\Exception $e) {
 
@@ -78,19 +78,21 @@ class LogbookController extends Controller
     }
 
     /**
-     * Guest Time In
+     * Guest Time In — uses the approved booking to auto-fill lab + purpose.
+     * Supports group reservations via the optional "booked_under" field.
      */
     public function guestTimeIn(GuestTimeInRequest $request)
     {
         try {
 
             $this->loggingService->guestTimeIn(
-                $request->validated()
+                $request->guest_name,
+                $request->booked_under,
             );
 
             return redirect()
                 ->back()
-                ->with('success', 'Guest successfully logged in.');
+                ->with('success', 'Welcome! You are now signed in.');
 
         } catch (\Exception $e) {
 
@@ -102,69 +104,77 @@ class LogbookController extends Controller
     }
 
     /**
-     * Admin Logbook
+     * Admin Logbook — paginated table of lab usage entries.
+     * Supports ?search, ?filter, ?lab_id query params and ?export=csv.
      */
     public function logs(Request $request)
     {
-        $logs = $this->loggingService
-            ->getLogs($request);
+        // CSV export — fetch ALL filtered rows (no pagination).
+        if ($request->export === 'csv') {
+            return $this->exportCsv($request);
+        }
+
+        $logs = $this->loggingService->getLogs($request);
 
         $entries = $logs->map(function ($log) {
-
             return [
-                'id' => $log->lab_utilization_log_id,
-
-                'studentId' => $log->student?->student_id
-                    ?? 'GUEST',
-
-                'name' => $log->student
-                    ? $log->student->first_name . ' ' . $log->student->last_name
-                    : $log->guest?->guest_name,
-
-                'timeIn' => optional($log->time_in)
-                    ->format('h:i A'),
-
-                'timeOut' => $log->time_out
-                    ? $log->time_out->format('h:i A')
-                    : null,
-
-                'purpose' => $log->purpose,
-
-                'date' => optional($log->log_date)
-                    ->format('M d, Y'),
-
-                'laboratory' => $log->laboratory?->lab_name,
+                'id'         => $log->lab_utilization_log_id,
+                'studentId'  => $log->student?->student_id ?? 'GUEST',
+                'name'       => $log->student
+                                ? trim($log->student->first_name . ' ' . $log->student->last_name)
+                                : ($log->guest?->guest_name ?? '—'),
+                'timeIn'     => optional($log->time_in)->format('h:i A'),
+                'timeOut'    => $log->time_out ? $log->time_out->format('h:i A') : null,
+                'purpose'    => $log->purpose,
+                'date'       => optional($log->log_date)->format('M d, Y'),
+                'laboratory' => $log->laboratory?->lab_name ?? '—',
             ];
         });
 
+        $laboratories = Laboratory::orderBy('lab_name')->get();
+
         return view('logbook.index', [
-            'entries' => $entries,
-            'logs' => $logs,
+            'entries'      => $entries,
+            'logs'         => $logs,
+            'laboratories' => $laboratories,
         ]);
     }
 
     /**
-     * Active Users
+     * Stream all currently-filtered logs as a CSV download.
      */
-    public function activeUsers()
+    private function exportCsv(Request $request)
     {
-        $activeUsers = $this->loggingService->getActiveUsers();
+        $filename = 'logbook-' . now()->format('Y-m-d-His') . '.csv';
 
-        return view('logging.active-users', compact('activeUsers'));
+        return response()->streamDownload(function () use ($request) {
+            $handle = fopen('php://output', 'w');
+
+            fputcsv($handle, [
+                'Date', 'Student ID', 'Name', 'Laboratory', 'Purpose', 'Time In', 'Time Out',
+            ]);
+
+            $this->loggingService->buildLogQuery($request)
+                ->chunk(200, function ($chunk) use ($handle) {
+                    foreach ($chunk as $log) {
+                        fputcsv($handle, [
+                            optional($log->log_date)->format('Y-m-d'),
+                            $log->student?->student_id ?? 'GUEST',
+                            $log->student
+                                ? trim($log->student->first_name . ' ' . $log->student->last_name)
+                                : ($log->guest?->guest_name ?? ''),
+                            $log->laboratory?->lab_name ?? '',
+                            $log->purpose ?? '',
+                            optional($log->time_in)->format('Y-m-d H:i:s'),
+                            $log->time_out ? $log->time_out->format('Y-m-d H:i:s') : '',
+                        ]);
+                    }
+                });
+
+            fclose($handle);
+        }, $filename, [
+            'Content-Type' => 'text/csv',
+        ]);
     }
 
-    /**
-     * View Single Log
-     */
-    public function show($id)
-    {
-        $log = LabUtilizationLog::with([
-            'student',
-            'guest',
-            'laboratory',
-            'instructor'
-        ])->findOrFail($id);
-
-        return view('logging.show', compact('log'));
-    }
 }

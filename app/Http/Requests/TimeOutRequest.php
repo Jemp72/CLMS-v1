@@ -4,7 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class StudentTimeInRequest extends FormRequest
+class TimeOutRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -14,9 +14,10 @@ class StudentTimeInRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'student_id' => [
+            'identifier' => [
                 'required',
-                'exists:students,student_id',
+                'string',
+                'max:150',
             ],
         ];
     }
@@ -24,7 +25,7 @@ class StudentTimeInRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'student_id.exists' => 'No student found with that number.',
+            'identifier.required' => 'Please enter your student number or full name.',
         ];
     }
 }

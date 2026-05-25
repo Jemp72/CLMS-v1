@@ -13,6 +13,8 @@ class SystemUser extends Authenticatable
 
     protected $primaryKey = 'system_user_id';
 
+    public $timestamps = false;
+
     protected $fillable = [
         'first_name',
         'last_name',
