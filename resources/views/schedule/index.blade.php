@@ -139,15 +139,19 @@
                     @if ($day === null)
                         <div></div>
                     @else
+                        @php
+                            $isPast  = $isPastMonth || ($isCurrentMonth && $day < $todayNumber);
+                            $isToday = $isCurrentMonth && $day === $todayNumber;
+                        @endphp
                         <button type="button"
                                 @click="selectedDay = {{ $day }}"
                                 :title="dayTooltip({{ $day }})"
                                 :class="selectedDay === {{ $day }}
                                     ? 'border-primary bg-primary/10 shadow-sm'
-                                    : 'border-black/10 bg-white hover:bg-surface'"
-                                class="aspect-square rounded-lg border p-2 text-left transition-all">
+                                    : '{{ $isPast ? 'border-black/5 bg-surface' : 'border-black/10 bg-white hover:bg-surface' }}'"
+                                class="aspect-square rounded-lg border p-2 text-left transition-all {{ $isToday ? 'ring-2 ring-primary ring-offset-1' : '' }}">
 
-                            <span class="text-sm"
+                            <span class="text-sm {{ $isPast ? 'opacity-40' : '' }}"
                                   :class="(scheduledDays.includes({{ $day }}) || pendingDays.includes({{ $day }}) || approvedDays.includes({{ $day }}))
                                       ? 'font-semibold text-primary'
                                       : 'text-[#2c2c2c]'">
@@ -155,7 +159,7 @@
                             </span>
 
                             {{-- Indicator dots: maroon = class, amber = pending, green = approved --}}
-                            <div class="mt-1 flex items-center gap-1">
+                            <div class="mt-1 flex items-center gap-1 {{ $isPast ? 'opacity-40' : '' }}">
                                 <template x-if="scheduledDays.includes({{ $day }})">
                                     <div class="w-1.5 h-1.5 bg-primary rounded-full"></div>
                                 </template>

@@ -55,10 +55,11 @@ class ScheduleController extends Controller
         $calendarDays    = array_merge(array_fill(0, $firstDayOfMonth, null), range(1, $daysInMonth));
 
         // Default selected day: today if viewing real-current month, otherwise day 1.
-        $now      = Carbon::now();
-        $todayDay = ($currentMonth === $now->month && $currentYear === $now->year)
-            ? $now->day
-            : 1;
+        $now            = Carbon::now();
+        $isCurrentMonth = $currentMonth === $now->month && $currentYear === $now->year;
+        $isPastMonth    = $currentYear < $now->year || $currentYear === $now->year && $currentMonth < $now->month;
+        $todayNumber    = $now->day;
+        $todayDay       = $isCurrentMonth ? $now->day : 1;
 
         return view('schedule.index', compact(
             'schedules',
@@ -72,6 +73,9 @@ class ScheduleController extends Controller
             'monthShort',
             'displayYear',
             'todayDay',
+            'todayNumber',
+            'isCurrentMonth',
+            'isPastMonth',
         ));
     }
 
