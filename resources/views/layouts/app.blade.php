@@ -146,5 +146,10 @@
 </div>
 
 @stack('modals')
+<script>
+    window.addEventListener('pageshow', function (e) {
+        if (e.persisted) window.location.replace("{{ route('login') }}");
+    });
+</script>
 </body>
 </html>
