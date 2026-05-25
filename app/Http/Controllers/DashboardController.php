@@ -2,67 +2,77 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        if (session('role') === 'instructor') {
-            return $this->instructorDashboard();
-        }
-
-        return $this->adminDashboard();
-    }
-
-    private function adminDashboard()
-    {
-        $activityLogs = [
-            ['user' => 'Juan Dela Cruz (2021-12345)', 'action' => 'Logged in', 'timestamp' => '5 mins ago', 'status' => 'success'],
-            ['user' => 'Prof. Reyes', 'action' => 'Created lab reservation for Lab A', 'timestamp' => '12 mins ago', 'status' => 'success'],
-            ['user' => 'Admin', 'action' => 'Added new equipment: PC-2024-015', 'timestamp' => '25 mins ago', 'status' => 'success'],
-            ['user' => 'Maria Santos (2021-12346)', 'action' => 'Logged out', 'timestamp' => '32 mins ago', 'status' => 'info'],
-            ['user' => 'System', 'action' => 'Low stock alert: Mouse - Logitech M90', 'timestamp' => '1 hour ago', 'status' => 'warning'],
-            ['user' => 'Pedro Garcia (2021-12347)', 'action' => 'Logged in', 'timestamp' => '1 hour ago', 'status' => 'success'],
-        ];
-
+        // ── Stat cards ─────────────────────────────────────────────
+        $totalStudents  = DB::table('students')->whereNull('deleted_at')->count();
+        $activeNow      = DB::table('lab_utilization_logs')->whereNull('time_out')->count();
         $totalEquipment = DB::table('equipments')->count();
+        $lowStockCount  = DB::table('office_supplies')
+            ->whereIn('status', ['low_stock', 'out_of_stock'])
+            ->count();
 
-        $lowStockItems = DB::table('office_supplies')
-            ->whereColumn('quantity', '<=', 'minimum_stock_threshold')
-            ->orderBy('quantity', 'asc')
-            ->limit(5)
+        // ── Recent activity (last 8 sign-in / sign-out events) ────
+        $activityLogs = DB::table('lab_utilization_logs')
+            ->leftJoin('students', 'lab_utilization_logs.student_id', '=', 'students.student_id')
+            ->leftJoin('guest_logs', 'lab_utilization_logs.guest_log_id', '=', 'guest_logs.guest_log_id')
+            ->leftJoin('laboratories', 'lab_utilization_logs.lab_id', '=', 'laboratories.lab_id')
+            ->select(
+                'lab_utilization_logs.purpose',
+                'lab_utilization_logs.time_in',
+                'lab_utilization_logs.time_out',
+                'laboratories.lab_name',
+                DB::raw("COALESCE(
+                    CONCAT(students.first_name, ' ', students.last_name),
+                    guest_logs.guest_name
+                ) AS person_name"),
+                DB::raw("COALESCE(students.student_id, 'GUEST') AS person_id"),
+            )
+            ->orderByDesc('lab_utilization_logs.time_in')
+            ->limit(8)
             ->get()
-            ->map(function ($s) {
+            ->map(function ($log) {
+                $signedOut = !is_null($log->time_out);
+                $when      = Carbon::parse($signedOut ? $log->time_out : $log->time_in)->diffForHumans();
+
                 return [
-                    'item' => $s->supply_name,
-                    'category' => $s->category,
-                    'quantity' => $s->quantity,
-                    'threshold' => $s->minimum_stock_threshold,
-                    'status' => $s->quantity == 0 ? 'critical' : 'warning',
-                    'percentage' => $s->minimum_stock_threshold > 0 ? round(($s->quantity / $s->minimum_stock_threshold) * 100) : 0,
+                    'user'      => $log->person_name . ' (' . $log->person_id . ')',
+                    'action'    => ($signedOut ? 'Signed out from ' : 'Signed in to ')
+                                   . ($log->lab_name ?? 'a lab')
+                                   . ($log->purpose ? ' — ' . $log->purpose : ''),
+                    'timestamp' => $when,
+                    'status'    => $signedOut ? 'info' : 'success',
                 ];
             })
             ->toArray();
 
-        return view('dashboard.admin', compact('activityLogs', 'lowStockItems', 'totalEquipment'));
-    }
+        // ── Inventory alerts (low / out of stock supplies) ────────
+        $lowStockItems = DB::table('office_supplies')
+            ->whereIn('status', ['low_stock', 'out_of_stock'])
+            ->orderByRaw("FIELD(status, 'out_of_stock', 'low_stock')")
+            ->orderBy('supply_name')
+            ->limit(6)
+            ->get()
+            ->map(fn ($s) => [
+                'item'     => $s->supply_name,
+                'category' => $s->category,
+                'status'   => $s->status === 'out_of_stock' ? 'critical' : 'warning',
+                'label'    => $s->status === 'out_of_stock' ? 'Out of Stock' : 'Low Stock',
+            ])
+            ->toArray();
 
-    private function instructorDashboard()
-    {
-        $students = [
-            ['studentId' => '2021-12345', 'name' => 'Juan Dela Cruz', 'email' => 'jdelacruz@usep.edu.ph', 'program' => 'BS Computer Science', 'status' => 'logged-in', 'lastActive' => '5 mins ago'],
-            ['studentId' => '2021-12346', 'name' => 'Maria Santos', 'email' => 'msantos@usep.edu.ph', 'program' => 'BS Information Technology', 'status' => 'logged-in', 'lastActive' => '12 mins ago'],
-            ['studentId' => '2021-12347', 'name' => 'Pedro Garcia', 'email' => 'pgarcia@usep.edu.ph', 'program' => 'BS Computer Science', 'status' => 'not-logged-in', 'lastActive' => '2 days ago'],
-            ['studentId' => '2021-12348', 'name' => 'Ana Reyes', 'email' => 'areyes@usep.edu.ph', 'program' => 'BS Information Technology', 'status' => 'logged-in', 'lastActive' => '18 mins ago'],
-            ['studentId' => '2021-12349', 'name' => 'Carlos Lopez', 'email' => 'clopez@usep.edu.ph', 'program' => 'BS Computer Science', 'status' => 'not-logged-in', 'lastActive' => '1 day ago'],
-            ['studentId' => '2021-12350', 'name' => 'Sofia Mendoza', 'email' => 'smendoza@usep.edu.ph', 'program' => 'BS Information Technology', 'status' => 'logged-in', 'lastActive' => '25 mins ago'],
-            ['studentId' => '2021-12351', 'name' => 'Miguel Torres', 'email' => 'mtorres@usep.edu.ph', 'program' => 'BS Computer Science', 'status' => 'not-logged-in', 'lastActive' => '3 days ago'],
-            ['studentId' => '2021-12352', 'name' => 'Isabella Cruz', 'email' => 'icruz@usep.edu.ph', 'program' => 'BS Information Technology', 'status' => 'logged-in', 'lastActive' => '8 mins ago'],
-            ['studentId' => '2021-12353', 'name' => 'Diego Ramos', 'email' => 'dramos@usep.edu.ph', 'program' => 'BS Computer Science', 'status' => 'not-logged-in', 'lastActive' => '5 days ago'],
-            ['studentId' => '2021-12354', 'name' => 'Lucia Fernandez', 'email' => 'lfernandez@usep.edu.ph', 'program' => 'BS Information Technology', 'status' => 'logged-in', 'lastActive' => '32 mins ago'],
-        ];
-
-        return view('dashboard.instructor', compact('students'));
+        return view('dashboard.admin', compact(
+            'totalStudents',
+            'activeNow',
+            'totalEquipment',
+            'lowStockCount',
+            'activityLogs',
+            'lowStockItems',
+        ));
     }
 }

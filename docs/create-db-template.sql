@@ -42,7 +42,22 @@ CREATE TABLE office_supplies (
     supply_id INT PRIMARY KEY AUTO_INCREMENT,
 
     supply_name VARCHAR(100) NOT NULL,
-    quantity INT NOT NULL DEFAULT 0,
+
+    category ENUM(
+        'Stationery',
+        'Cleaning',
+        'Ink & Toner',
+        'Cables',
+        'Tools',
+        'Other'
+    ) NOT NULL DEFAULT 'Other',
+
+    status ENUM(
+        'fully_stocked',
+        'in_stock',
+        'low_stock',
+        'out_of_stock'
+    ) NOT NULL DEFAULT 'in_stock',
 
     unit VARCHAR(30),
     remarks VARCHAR(255)
@@ -96,10 +111,11 @@ CREATE TABLE guest_logs (
 CREATE TABLE equipments (
     equipment_id INT PRIMARY KEY AUTO_INCREMENT,
 
-    equipment_no VARCHAR(50) NOT NULL,
+    equipment_no VARCHAR(50) NOT NULL UNIQUE,
     serial_no VARCHAR(100) UNIQUE,
 
     equipment_name VARCHAR(150) NOT NULL,
+    brand VARCHAR(100),
     model_number VARCHAR(100),
 
     equipment_type ENUM(
@@ -109,6 +125,13 @@ CREATE TABLE equipments (
         'miscellaneous'
     ) NOT NULL,
 
+    equipment_status ENUM(
+        'available',
+        'in-use',
+        'maintenance',
+        'damaged'
+    ) NOT NULL DEFAULT 'available',
+
     quantity INT DEFAULT 1,
 
     lab_id INT NOT NULL,
@@ -116,6 +139,7 @@ CREATE TABLE equipments (
     parent_equipment_id INT NULL,
 
     preventive_maintenance_done BOOLEAN DEFAULT FALSE,
+    calibration_done BOOLEAN DEFAULT FALSE,
     remarks VARCHAR(255),
 
     FOREIGN KEY (lab_id)
@@ -149,20 +173,20 @@ CREATE TABLE instructors (
 -- ACADEMIC TERMS
 -- =========================================
 
-CREATE TABLE academic_terms (
-    academic_term_id INT PRIMARY KEY AUTO_INCREMENT,
+    CREATE TABLE academic_terms (
+        academic_term_id INT PRIMARY KEY AUTO_INCREMENT,
 
-    academic_year VARCHAR(20) NOT NULL,
+        academic_year VARCHAR(20) NOT NULL,
 
-    semester ENUM(
-        '1st',
-        '2nd',
-        'summer'
-    ) NOT NULL,
+        semester ENUM(
+            '1st',
+            '2nd',
+            'summer'
+        ) NOT NULL,
 
-    start_date DATE NOT NULL,
-    end_date DATE NOT NULL
-);
+        start_date DATE NOT NULL,
+        end_date DATE NOT NULL
+    );
 
 -- =========================================
 -- LAB UTILIZATION LOGS

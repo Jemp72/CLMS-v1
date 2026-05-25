@@ -6,7 +6,7 @@
 <div class="space-y-6">
 
     {{-- Header --}}
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
             <div class="flex items-baseline gap-3">
                 <h1 class="text-primary text-2xl">Class Lists</h1>
@@ -18,7 +18,7 @@
             <p class="text-muted text-sm mt-1">View enrolled students for every class schedule</p>
         </div>
         <a href="{{ route('enrollments.import') }}"
-           class="flex items-center gap-2 px-4 py-2.5 bg-white border border-black/10 text-[#2c2c2c] rounded-lg hover:bg-surface transition-colors text-sm font-medium">
+           class="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-black/10 text-[#2c2c2c] rounded-lg hover:bg-surface transition-colors text-sm font-medium whitespace-nowrap">
             <x-icon name="plus" class="w-4 h-4" />
             Import Class List
         </a>

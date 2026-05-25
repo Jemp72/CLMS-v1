@@ -17,6 +17,9 @@
          showEditEquipment: false,
          showDeleteEquipment: false,
          showQR: false,
+         showScanner: false,
+         scannerError: "",
+         scannerInstance: null,
          selectedEquipment: null,
 
          /* ── Supplies ────────────────────────────────────────────── */
@@ -134,6 +137,57 @@
              });
          },
 
+         // ── QR Scanner ────────────────────────────────────────────
+         openScanner() {
+             this.scannerError = "";
+             this.showScanner  = true;
+
+             this.$nextTick(() => this.startCamera());
+         },
+
+         async startCamera() {
+             if (typeof window.QrScanner === "undefined") {
+                 this.scannerError = "Scanner library failed to load.";
+                 return;
+             }
+
+             const video = this.$refs.scannerVideo;
+             if (!video) return;
+
+             try {
+                 this.scannerInstance = new window.QrScanner(
+                     video,
+                     (result) => this.onScanSuccess(result.data),
+                     { highlightScanRegion: true, highlightCodeOutline: true }
+                 );
+                 await this.scannerInstance.start();
+             } catch (e) {
+                 this.scannerError = "Could not access camera. Use the ID input below.";
+                 console.error(e);
+             }
+         },
+
+         closeScanner() {
+             if (this.scannerInstance) {
+                 this.scannerInstance.stop();
+                 this.scannerInstance.destroy();
+                 this.scannerInstance = null;
+             }
+             this.showScanner = false;
+         },
+
+         onScanSuccess(data) {
+             // QR encodes a URL like .../inventory/equipment/{id}
+             // Match the trailing equipment id and redirect.
+             const m = String(data).match(/\/inventory\/equipment\/(\d+)/);
+             if (!m) {
+                 this.scannerError = "Not a valid CLMS equipment QR code.";
+                 return;
+             }
+             this.closeScanner();
+             window.location.href = "{{ url('/inventory/equipment') }}/" + m[1];
+         },
+
          downloadQR() {
              if (!this.selectedEquipment) return;
              var canvas = document.querySelector("#qr-canvas canvas");
@@ -161,18 +215,22 @@
     @endif
 
     {{-- ── Page Header ──────────────────────────────────────────────────────── --}}
-    <div class="flex items-center justify-between">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
             <h1 class="text-primary text-2xl mb-1">Inventory Management</h1>
             <p class="text-muted text-sm">Physical count records for equipment and consumable supplies</p>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-2 sm:gap-3">
             <a :href="'{{ route('inventory.print') }}?tab=' + activeTab" target="_blank"
                class="flex items-center gap-2 px-4 py-2 border border-black/10 rounded-lg hover:bg-surface transition-colors text-sm text-[#2c2c2c]">
                 <x-icon name="download" class="w-4 h-4" />
                 Print List
             </a>
-            @if (session('role') === 'admin')
+            <button x-show="activeTab === 'equipment'" @click="openScanner()"
+                    class="flex items-center gap-2 px-4 py-2 border border-black/10 rounded-lg hover:bg-surface transition-colors text-sm text-[#2c2c2c]">
+                <x-icon name="qr-code" class="w-4 h-4" />
+                Scan QR
+            </button>
             <button x-show="activeTab === 'equipment'" @click="showAddEquipment = true"
                     class="flex items-center gap-2 px-5 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors shadow-sm text-sm font-medium">
                 <x-icon name="plus" class="w-4 h-4" />
@@ -183,7 +241,6 @@
                 <x-icon name="plus" class="w-4 h-4" />
                 Add Supply
             </button>
-            @endif
         </div>
     </div>
 
@@ -297,7 +354,6 @@
                                                 class="p-1.5 hover:bg-white rounded-lg transition-colors">
                                             <x-icon name="qr-code" class="w-4 h-4 text-success" />
                                         </button>
-                                        @if (session('role') === 'admin')
                                         <button @click="openEditEquipment(item)" title="Edit"
                                                 class="p-1.5 hover:bg-white rounded-lg transition-colors">
                                             <x-icon name="edit" class="w-4 h-4 text-muted" />
@@ -306,15 +362,26 @@
                                                 class="p-1.5 hover:bg-white rounded-lg transition-colors">
                                             <x-icon name="trash-2" class="w-4 h-4 text-muted" />
                                         </button>
-                                        @endif
                                     </div>
                                 </td>
                             </tr>
                         </template>
-                        <template x-if="filteredEquipment.length === 0">
+                        <template x-if="filteredEquipment.length === 0 && equipment.length === 0">
+                            <tr>
+                                <td colspan="10" class="px-5 py-12 text-center">
+                                    <x-icon name="package" class="w-10 h-10 text-muted mx-auto mb-3 opacity-30" />
+                                    <p class="text-sm text-muted">No equipment added yet</p>
+                                    <button @click="showAddEquipment = true"
+                                            class="inline-block mt-2 text-xs text-primary hover:underline">
+                                        Add the first one →
+                                    </button>
+                                </td>
+                            </tr>
+                        </template>
+                        <template x-if="filteredEquipment.length === 0 && equipment.length > 0">
                             <tr>
                                 <td colspan="10" class="px-5 py-12 text-center text-sm text-muted">
-                                    No equipment found matching your filters.
+                                    No equipment matches your filters.
                                 </td>
                             </tr>
                         </template>
@@ -383,7 +450,6 @@
                                 <td class="px-5 py-3 text-sm text-muted" x-text="item.category"></td>
                                 <td class="px-5 py-3 text-sm text-muted" x-text="item.unit || '—'"></td>
                                 <td class="px-5 py-3">
-                                    @if (session('role') === 'admin')
                                     <select :value="item.status"
                                             @change="confirmStatusChange(item, $event.target.value); $event.target.value = item.status"
                                             class="px-2 py-1 border border-black/10 rounded text-xs font-medium bg-surface focus:border-primary focus:outline-none cursor-pointer">
@@ -392,16 +458,10 @@
                                         <option value="low_stock">Low Stock</option>
                                         <option value="out_of_stock">Out of Stock</option>
                                     </select>
-                                    @else
-                                    <span class="inline-block px-2 py-1 rounded text-xs font-medium"
-                                          :class="supplyStatusClass(item.status)"
-                                          x-text="supplyStatusLabel(item.status)"></span>
-                                    @endif
                                 </td>
                                 <td class="px-5 py-3 text-sm text-muted max-w-[160px] truncate" x-text="item.remarks || '—'"></td>
                                 <td class="px-5 py-3">
                                     <div class="flex items-center gap-1">
-                                        @if (session('role') === 'admin')
                                         <button @click="openEditSupply(item)" title="Edit"
                                                 class="p-1.5 hover:bg-white rounded-lg transition-colors">
                                             <x-icon name="edit" class="w-4 h-4 text-muted" />
@@ -410,16 +470,25 @@
                                                 class="p-1.5 hover:bg-white rounded-lg transition-colors">
                                             <x-icon name="trash-2" class="w-4 h-4 text-muted" />
                                         </button>
-                                        @else
-                                        <span class="text-xs text-muted">View only</span>
-                                        @endif
                                     </div>
                                 </td>
                             </tr>
                         </template>
-                        <template x-if="filteredSupplies.length === 0">
+                        <template x-if="filteredSupplies.length === 0 && supplies.length === 0">
                             <tr>
-                                <td colspan="6" class="px-5 py-12 text-center text-sm text-muted">No supply items found.</td>
+                                <td colspan="6" class="px-5 py-12 text-center">
+                                    <x-icon name="package" class="w-10 h-10 text-muted mx-auto mb-3 opacity-30" />
+                                    <p class="text-sm text-muted">No supplies added yet</p>
+                                    <button @click="showAddSupply = true"
+                                            class="inline-block mt-2 text-xs text-primary hover:underline">
+                                        Add the first one →
+                                    </button>
+                                </td>
+                            </tr>
+                        </template>
+                        <template x-if="filteredSupplies.length === 0 && supplies.length > 0">
+                            <tr>
+                                <td colspan="6" class="px-5 py-12 text-center text-sm text-muted">No supplies match your filters.</td>
                             </tr>
                         </template>
                     </tbody>
@@ -697,6 +766,41 @@
                     <button type="submit"
                             class="px-5 py-2.5 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors text-sm font-medium">Yes, Delete</button>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- QR SCANNER MODAL ─────────────────────────────────────────────────────── --}}
+    <div x-show="showScanner" x-cloak
+         x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+         class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+
+        <div @click.outside="closeScanner()" class="bg-white rounded-xl w-full max-w-md shadow-2xl">
+
+            <div class="flex items-center justify-between p-5 border-b border-black/10">
+                <div>
+                    <h2 class="text-primary text-base font-semibold">Scan Equipment QR</h2>
+                    <p class="text-xs text-muted mt-0.5">Point your camera at a QR sticker</p>
+                </div>
+                <button type="button" @click="closeScanner()"
+                        class="p-1.5 hover:bg-surface rounded-lg transition-colors">
+                    <x-icon name="x" class="w-5 h-5 text-muted" />
+                </button>
+            </div>
+
+            <div class="p-5">
+                {{-- Camera feed --}}
+                <div class="relative aspect-square bg-black rounded-lg overflow-hidden mb-4">
+                    <video x-ref="scannerVideo" class="w-full h-full object-cover"></video>
+                </div>
+
+                {{-- Error message --}}
+                <template x-if="scannerError">
+                    <div class="px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-xs text-red-700"
+                         x-text="scannerError">
+                    </div>
+                </template>
             </div>
         </div>
     </div>
