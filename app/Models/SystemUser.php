@@ -30,6 +30,11 @@ class SystemUser extends Authenticatable
         'reset_token',
     ];
 
+    public function getAuthPassword()
+    {
+        return $this->password_hash;
+    }
+
     public function privileges()
     {
         return $this->hasOne(SystemUserPrivilege::class, 'system_user_id');

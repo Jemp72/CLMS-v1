@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\SystemUser;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
@@ -24,14 +25,16 @@ class AuthController extends Controller
             'password' => 'required',
         ]);
 
-        $user = SystemUser::where('email', $request->email)->first();
-
-        if (! $user || ! Hash::check($request->password, $user->password)) {
+        if (! Auth::attempt(['email' => $request->email, 'password' => $request->password])) {
             return redirect()
                 ->back()
                 ->withInput()
                 ->withErrors(['email' => 'Invalid email or password.']);
         }
+
+        $request->session()->regenerate();
+
+        $user = Auth::user();
 
         session([
             'logged_in' => true,
@@ -46,7 +49,10 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        $request->session()->flush();
+        Auth::logout();
+
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
 
         return redirect()->route('login');
     }
