@@ -17,6 +17,8 @@ class Student extends Model
 
     protected $keyType = 'string';
 
+    public $timestamps = false;
+
     protected $fillable = [
         'student_id',
         'first_name',
@@ -30,8 +32,8 @@ class Student extends Model
         return $this->hasMany(LabUtilizationLog::class, 'student_id');
     }
 
-    // public function enrollments()
-    // {
-    //     return $this->hasMany(StudentEnrollment::class, 'student_id');
-    // }
+    public function enrollments()
+    {
+        return $this->hasMany(StudentEnrollment::class, 'student_id');
+    }
 }

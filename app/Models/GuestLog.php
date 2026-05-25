@@ -13,6 +13,8 @@ class GuestLog extends Model
 
     protected $primaryKey = 'guest_log_id';
 
+    public $timestamps = false;
+
     protected $fillable = [
         'guest_name',
         'organization',
