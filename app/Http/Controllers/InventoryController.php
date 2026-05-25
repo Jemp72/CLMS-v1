@@ -31,7 +31,7 @@ class InventoryController extends Controller
         // ── Stats ─────────────────────────────────────────────────────────────
         $totalEquipment       = count($equipment);
         $totalSupplies        = count($supplies);
-        $lowStockCount        = count(array_filter($supplies, fn ($s) => $s['quantity'] <= $s['minimum_stock_threshold']));
+        $lowStockCount        = count(array_filter($supplies, fn ($s) => in_array($s['status'], ['low_stock', 'out_of_stock'])));
 
         // Equipment count per laboratory
         $perLab = DB::table('equipments')

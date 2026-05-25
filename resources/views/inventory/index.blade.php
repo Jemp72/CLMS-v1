@@ -23,10 +23,13 @@
          supplies: @json($supplies),
          supSearch: "",
          supCategoryFilter: "all",
-         supLowStockOnly: false,
+         supStatusFilter: "all",
          showAddSupply: {{ $errors->has('supply_name') || $errors->has('category') ? 'true' : 'false' }},
          showEditSupply: false,
          showDeleteSupply: false,
+         showStatusConfirm: false,
+         pendingStatusSupply: null,
+         pendingStatusValue: null,
          selectedSupply: null,
 
          /* ── Computed ────────────────────────────────────────────── */
@@ -47,14 +50,11 @@
          get filteredSupplies() {
              const q = this.supSearch.toLowerCase();
              return this.supplies.filter(s => {
-                 const matchCat      = this.supCategoryFilter === "all" || s.category === this.supCategoryFilter;
-                 const matchSearch   = !q || (s.supply_name || "").toLowerCase().includes(q);
-                 const matchLowStock = !this.supLowStockOnly || s.quantity <= s.minimum_stock_threshold;
-                 return matchCat && matchSearch && matchLowStock;
+                 const matchCat    = this.supCategoryFilter === "all" || s.category === this.supCategoryFilter;
+                 const matchSearch = !q || (s.supply_name || "").toLowerCase().includes(q);
+                 const matchStatus = this.supStatusFilter  === "all" || s.status   === this.supStatusFilter;
+                 return matchCat && matchSearch && matchStatus;
              });
-         },
-         get lowStockSupplies() {
-             return this.supplies.filter(s => s.quantity <= s.minimum_stock_threshold);
          },
 
          /* ── Helpers ─────────────────────────────────────────────── */
@@ -67,6 +67,12 @@
          statusLabel(s) {
              return { available: "Available", "in-use": "In Use", maintenance: "Maintenance", damaged: "Damaged" }[s] || s;
          },
+         supplyStatusClass(s) {
+             return { fully_stocked: "bg-success text-white", in_stock: "bg-blue-100 text-blue-800", low_stock: "bg-warning text-[#2c2c2c]", out_of_stock: "bg-primary text-white" }[s] || "bg-muted text-white";
+         },
+         supplyStatusLabel(s) {
+             return { fully_stocked: "Fully Stocked", in_stock: "In Stock", low_stock: "Low Stock", out_of_stock: "Out of Stock" }[s] || s;
+         },
 
          /* ── Actions ─────────────────────────────────────────────── */
          openEditEquipment(item)   { this.selectedEquipment = {...item}; this.showEditEquipment   = true; },
@@ -74,6 +80,35 @@
          openQR(item)              { this.selectedEquipment = {...item}; this.showQR              = true; },
          openEditSupply(item)      { this.selectedSupply    = {...item}; this.showEditSupply      = true; },
          openDeleteSupply(item)    { this.selectedSupply    = {...item}; this.showDeleteSupply    = true; },
+         confirmStatusChange(item, newStatus) {
+             this.pendingStatusSupply = {...item};
+             this.pendingStatusValue  = newStatus;
+             this.showStatusConfirm   = true;
+         },
+         submitStatusChange() {
+             if (!this.pendingStatusSupply || !this.pendingStatusValue) return;
+             var form = document.createElement("form");
+             form.method = "POST";
+             form.action = "{{ url('/inventory/supplies') }}/" + this.pendingStatusSupply.supply_id;
+             var fields = {
+                 _token: "{{ csrf_token() }}",
+                 _method: "PUT",
+                 supply_name: this.pendingStatusSupply.supply_name,
+                 category: this.pendingStatusSupply.category,
+                 status: this.pendingStatusValue,
+                 unit: this.pendingStatusSupply.unit || "",
+                 remarks: this.pendingStatusSupply.remarks || ""
+             };
+             for (var key in fields) {
+                 var input = document.createElement("input");
+                 input.type = "hidden";
+                 input.name = key;
+                 input.value = fields[key];
+                 form.appendChild(input);
+             }
+             document.body.appendChild(form);
+             form.submit();
+         },
 
          generateQR(id) {
              this.$nextTick(() => {
@@ -325,11 +360,14 @@
                         <option value="{{ $cat }}">{{ $cat }}</option>
                         @endforeach
                     </select>
-                    <label class="flex items-center gap-2 text-sm text-[#2c2c2c] cursor-pointer select-none">
-                        <input type="checkbox" x-model="supLowStockOnly"
-                               class="rounded border-black/20 text-primary focus:ring-primary" />
-                        Low stock only
-                    </label>
+                    <select x-model="supStatusFilter"
+                            class="px-3 py-2 border border-black/10 rounded-lg bg-surface text-sm focus:border-primary focus:outline-none cursor-pointer">
+                        <option value="all">All Statuses</option>
+                        <option value="fully_stocked">Fully Stocked</option>
+                        <option value="in_stock">In Stock</option>
+                        <option value="low_stock">Low Stock</option>
+                        <option value="out_of_stock">Out of Stock</option>
+                    </select>
                 </div>
             </div>
 
@@ -340,10 +378,8 @@
                         <tr>
                             <th class="px-5 py-3 text-left text-xs font-semibold text-[#2c2c2c] uppercase tracking-wide">Supply Name</th>
                             <th class="px-5 py-3 text-left text-xs font-semibold text-[#2c2c2c] uppercase tracking-wide">Category</th>
-                            <th class="px-5 py-3 text-left text-xs font-semibold text-[#2c2c2c] uppercase tracking-wide">Qty on Hand</th>
-                            <th class="px-5 py-3 text-left text-xs font-semibold text-[#2c2c2c] uppercase tracking-wide">Min. Threshold</th>
                             <th class="px-5 py-3 text-left text-xs font-semibold text-[#2c2c2c] uppercase tracking-wide">Unit</th>
-                            <th class="px-5 py-3 text-left text-xs font-semibold text-[#2c2c2c] uppercase tracking-wide">Stock Level</th>
+                            <th class="px-5 py-3 text-left text-xs font-semibold text-[#2c2c2c] uppercase tracking-wide">Status</th>
                             <th class="px-5 py-3 text-left text-xs font-semibold text-[#2c2c2c] uppercase tracking-wide">Remarks</th>
                             <th class="px-5 py-3 text-left text-xs font-semibold text-[#2c2c2c] uppercase tracking-wide">Actions</th>
                         </tr>
@@ -353,22 +389,22 @@
                             <tr class="hover:bg-surface transition-colors">
                                 <td class="px-5 py-3 text-sm font-medium text-[#2c2c2c]" x-text="item.supply_name"></td>
                                 <td class="px-5 py-3 text-sm text-muted" x-text="item.category"></td>
-                                <td class="px-5 py-3">
-                                    <span class="text-sm font-mono font-semibold"
-                                          :class="item.quantity <= item.minimum_stock_threshold ? 'text-primary' : 'text-[#2c2c2c]'"
-                                          x-text="item.quantity"></span>
-                                </td>
-                                <td class="px-5 py-3 text-sm font-mono text-muted" x-text="item.minimum_stock_threshold"></td>
                                 <td class="px-5 py-3 text-sm text-muted" x-text="item.unit || '—'"></td>
                                 <td class="px-5 py-3">
+                                    @if (session('role') === 'admin')
+                                    <select :value="item.status"
+                                            @change="confirmStatusChange(item, $event.target.value); $event.target.value = item.status"
+                                            class="px-2 py-1 border border-black/10 rounded text-xs font-medium bg-surface focus:border-primary focus:outline-none cursor-pointer">
+                                        <option value="fully_stocked">Fully Stocked</option>
+                                        <option value="in_stock">In Stock</option>
+                                        <option value="low_stock">Low Stock</option>
+                                        <option value="out_of_stock">Out of Stock</option>
+                                    </select>
+                                    @else
                                     <span class="inline-block px-2 py-1 rounded text-xs font-medium"
-                                          :class="{
-                                              'bg-primary text-white':      item.quantity === 0,
-                                              'bg-warning text-[#2c2c2c]': item.quantity > 0 && item.quantity <= item.minimum_stock_threshold,
-                                              'bg-success/10 text-success': item.quantity > item.minimum_stock_threshold
-                                          }"
-                                          x-text="item.quantity === 0 ? 'Out of Stock' : item.quantity <= item.minimum_stock_threshold ? 'Low Stock' : 'OK'">
-                                    </span>
+                                          :class="supplyStatusClass(item.status)"
+                                          x-text="supplyStatusLabel(item.status)"></span>
+                                    @endif
                                 </td>
                                 <td class="px-5 py-3 text-sm text-muted max-w-[160px] truncate" x-text="item.remarks || '—'"></td>
                                 <td class="px-5 py-3">
@@ -391,7 +427,7 @@
                         </template>
                         <template x-if="filteredSupplies.length === 0">
                             <tr>
-                                <td colspan="8" class="px-5 py-12 text-center text-sm text-muted">No supply items found.</td>
+                                <td colspan="6" class="px-5 py-12 text-center text-sm text-muted">No supply items found.</td>
                             </tr>
                         </template>
                     </tbody>
@@ -742,16 +778,16 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="grid grid-cols-3 gap-4">
+                <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-[#2c2c2c] mb-1.5">Qty on Hand <span class="text-primary">*</span></label>
-                        <input type="number" name="quantity" value="0" min="0" required
-                               class="w-full px-4 py-2.5 border border-black/10 rounded-lg bg-surface text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-[#2c2c2c] mb-1.5">Min. Threshold <span class="text-primary">*</span></label>
-                        <input type="number" name="minimum_stock_threshold" value="0" min="0" required
-                               class="w-full px-4 py-2.5 border border-black/10 rounded-lg bg-surface text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
+                        <label class="block text-sm font-medium text-[#2c2c2c] mb-1.5">Status <span class="text-primary">*</span></label>
+                        <select name="status" required
+                                class="w-full px-4 py-2.5 border border-black/10 rounded-lg bg-surface text-sm focus:border-primary focus:outline-none cursor-pointer">
+                            <option value="fully_stocked">Fully Stocked</option>
+                            <option value="in_stock" selected>In Stock</option>
+                            <option value="low_stock">Low Stock</option>
+                            <option value="out_of_stock">Out of Stock</option>
+                        </select>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-[#2c2c2c] mb-1.5">Unit</label>
@@ -806,16 +842,16 @@
                         @endforeach
                     </select>
                 </div>
-                <div class="grid grid-cols-3 gap-4">
+                <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <label class="block text-sm font-medium text-[#2c2c2c] mb-1.5">Qty on Hand <span class="text-primary">*</span></label>
-                        <input type="number" name="quantity" min="0" required :value="selectedSupply?.quantity"
-                               class="w-full px-4 py-2.5 border border-black/10 rounded-lg bg-surface text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-[#2c2c2c] mb-1.5">Min. Threshold <span class="text-primary">*</span></label>
-                        <input type="number" name="minimum_stock_threshold" min="0" required :value="selectedSupply?.minimum_stock_threshold"
-                               class="w-full px-4 py-2.5 border border-black/10 rounded-lg bg-surface text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
+                        <label class="block text-sm font-medium text-[#2c2c2c] mb-1.5">Status <span class="text-primary">*</span></label>
+                        <select name="status" required
+                                class="w-full px-4 py-2.5 border border-black/10 rounded-lg bg-surface text-sm focus:border-primary focus:outline-none cursor-pointer">
+                            <option value="fully_stocked" :selected="selectedSupply?.status === 'fully_stocked'">Fully Stocked</option>
+                            <option value="in_stock"      :selected="selectedSupply?.status === 'in_stock'">In Stock</option>
+                            <option value="low_stock"     :selected="selectedSupply?.status === 'low_stock'">Low Stock</option>
+                            <option value="out_of_stock"  :selected="selectedSupply?.status === 'out_of_stock'">Out of Stock</option>
+                        </select>
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-[#2c2c2c] mb-1.5">Unit</label>
@@ -865,7 +901,40 @@
         </div>
     </div>
 
-    {{-- Hidden printable QR label — visible only during window.print() --}}
+    {{-- STATUS CHANGE CONFIRMATION ────────────────────────────────────────── --}}
+    <div x-show="showStatusConfirm" x-cloak
+         x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+         class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div @click.outside="showStatusConfirm = false; pendingStatusSupply = null; pendingStatusValue = null"
+             class="bg-white rounded-xl w-full max-w-md shadow-2xl">
+            <div class="p-6 text-center">
+                <div class="w-12 h-12 bg-warning/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <x-icon name="alert-triangle" class="w-6 h-6 text-warning" />
+                </div>
+                <h3 class="font-heading font-semibold text-[#2c2c2c] text-lg mb-1">Change Supply Status</h3>
+                <p class="text-sm text-muted mb-2">You are about to change the status of:</p>
+                <p class="text-sm font-medium text-[#2c2c2c] mb-3" x-text="pendingStatusSupply?.supply_name"></p>
+                <div class="flex items-center justify-center gap-2 mb-5">
+                    <span class="inline-block px-2 py-1 rounded text-xs font-medium"
+                          :class="supplyStatusClass(pendingStatusSupply?.status)"
+                          x-text="supplyStatusLabel(pendingStatusSupply?.status)"></span>
+                    <x-icon name="arrow-right" class="w-4 h-4 text-muted" />
+                    <span class="inline-block px-2 py-1 rounded text-xs font-medium"
+                          :class="supplyStatusClass(pendingStatusValue)"
+                          x-text="supplyStatusLabel(pendingStatusValue)"></span>
+                </div>
+                <div class="flex justify-center gap-3">
+                    <button type="button" @click="showStatusConfirm = false; pendingStatusSupply = null; pendingStatusValue = null"
+                            class="px-5 py-2.5 border border-black/10 rounded-lg hover:bg-surface transition-colors text-sm">Cancel</button>
+                    <button type="button" @click="submitStatusChange()"
+                            class="px-5 py-2.5 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors text-sm font-medium">Yes, Change Status</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
     <div id="qr-print-label" class="hidden print:flex flex-col items-center justify-center fixed inset-0 bg-white z-[9999] p-8">
         <p class="text-xs uppercase tracking-widest text-gray-400 mb-2" style="font-family:monospace">USeP CLMS — Inventory</p>
         <div id="qr-print-canvas" class="my-3"></div>

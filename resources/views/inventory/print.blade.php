@@ -144,7 +144,7 @@
 @php
     $totalEq  = collect($equipmentByType)->flatten(1)->count();
     $totalSup = collect($suppliesByCategory)->flatten(1)->count();
-    $lowStock = collect($suppliesByCategory)->flatten(1)->filter(fn($s) => $s['quantity'] <= $s['minimum_stock_threshold'])->count();
+    $lowStock = collect($suppliesByCategory)->flatten(1)->filter(fn($s) => in_array($s['status'], ['low_stock', 'out_of_stock']))->count();
 @endphp
 <div class="summary-row">
     <div class="summary-item"><div class="num">{{ $totalEq }}</div><div class="lbl">Equipment Items</div></div>
@@ -217,27 +217,33 @@
         <thead>
             <tr>
                 <th>Supply Name</th>
-                <th style="width:60px;text-align:center">Qty on Hand</th>
-                <th style="width:75px;text-align:center">Min. Threshold</th>
                 <th style="width:50px">Unit</th>
-                <th style="width:80px">Stock Status</th>
+                <th style="width:80px">Status</th>
                 <th>Remarks</th>
             </tr>
         </thead>
         <tbody>
             @foreach ($items as $sup)
             @php
-                $isOut  = $sup['quantity'] === 0;
-                $isLow  = !$isOut && $sup['quantity'] <= $sup['minimum_stock_threshold'];
-                $stockBadge = $isOut ? 'badge-out' : ($isLow ? 'badge-low' : 'badge-ok');
-                $stockLabel = $isOut ? 'Out of Stock' : ($isLow ? 'Low Stock' : 'OK');
+                $statusLabels = [
+                    'fully_stocked' => 'Fully Stocked',
+                    'in_stock'      => 'In Stock',
+                    'low_stock'     => 'Low Stock',
+                    'out_of_stock'  => 'Out of Stock',
+                ];
+                $statusBadges = [
+                    'fully_stocked' => 'badge-ok',
+                    'in_stock'      => 'badge-available',
+                    'low_stock'     => 'badge-low',
+                    'out_of_stock'  => 'badge-out',
+                ];
+                $badge = $statusBadges[$sup['status']] ?? 'badge-ok';
+                $label = $statusLabels[$sup['status']] ?? $sup['status'];
             @endphp
             <tr>
                 <td><strong>{{ $sup['supply_name'] }}</strong></td>
-                <td class="mono" style="text-align:center;{{ $isLow || $isOut ? 'color:#991b1b;font-weight:700' : '' }}">{{ $sup['quantity'] }}</td>
-                <td class="mono" style="text-align:center">{{ $sup['minimum_stock_threshold'] }}</td>
                 <td>{{ $sup['unit'] ?: '—' }}</td>
-                <td><span class="badge {{ $stockBadge }}">{{ $stockLabel }}</span></td>
+                <td><span class="badge {{ $badge }}">{{ $label }}</span></td>
                 <td>{{ $sup['remarks'] ?: '—' }}</td>
             </tr>
             @endforeach

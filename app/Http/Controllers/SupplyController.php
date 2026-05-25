@@ -16,6 +16,13 @@ class SupplyController extends Controller
         'Other',
     ];
 
+    public const STATUSES = [
+        'fully_stocked',
+        'in_stock',
+        'low_stock',
+        'out_of_stock',
+    ];
+
     public function store(Request $request)
     {
         if (session('role') !== 'admin') {
@@ -23,12 +30,11 @@ class SupplyController extends Controller
         }
 
         $data = $request->validate([
-            'supply_name'             => 'required|string|max:100',
-            'category'                => 'required|in:Stationery,Cleaning,Ink & Toner,Cables,Tools,Other',
-            'quantity'                => 'required|integer|min:0',
-            'minimum_stock_threshold' => 'required|integer|min:0',
-            'unit'                    => 'nullable|string|max:30',
-            'remarks'                 => 'nullable|string|max:255',
+            'supply_name' => 'required|string|max:100',
+            'category'    => 'required|in:Stationery,Cleaning,Ink & Toner,Cables,Tools,Other',
+            'status'      => 'required|in:fully_stocked,in_stock,low_stock,out_of_stock',
+            'unit'        => 'nullable|string|max:30',
+            'remarks'     => 'nullable|string|max:255',
         ]);
 
         DB::table('office_supplies')->insert($data);
@@ -44,12 +50,11 @@ class SupplyController extends Controller
         }
 
         $data = $request->validate([
-            'supply_name'             => 'required|string|max:100',
-            'category'                => 'required|in:Stationery,Cleaning,Ink & Toner,Cables,Tools,Other',
-            'quantity'                => 'required|integer|min:0',
-            'minimum_stock_threshold' => 'required|integer|min:0',
-            'unit'                    => 'nullable|string|max:30',
-            'remarks'                 => 'nullable|string|max:255',
+            'supply_name' => 'required|string|max:100',
+            'category'    => 'required|in:Stationery,Cleaning,Ink & Toner,Cables,Tools,Other',
+            'status'      => 'required|in:fully_stocked,in_stock,low_stock,out_of_stock',
+            'unit'        => 'nullable|string|max:30',
+            'remarks'     => 'nullable|string|max:255',
         ]);
 
         DB::table('office_supplies')->where('supply_id', $id)->update($data);
