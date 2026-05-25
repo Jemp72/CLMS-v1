@@ -13,6 +13,8 @@ class Laboratory extends Model
 
     protected $primaryKey = 'lab_id';
 
+    public $timestamps = false;
+
     protected $fillable = [
         'lab_name',
         'location',

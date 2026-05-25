@@ -18,25 +18,8 @@ CREATE TABLE system_users (
     email VARCHAR(100) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
 
-    role_type ENUM('admin','instructor') NOT NULL,
-
     reset_token VARCHAR(255) NULL,
     reset_token_expiration DATETIME NULL
-);
-
-CREATE TABLE system_user_privileges (
-    privilege_id INT PRIMARY KEY AUTO_INCREMENT,
-
-    system_user_id INT NOT NULL,
-
-    can_manage_accounts BOOLEAN DEFAULT FALSE,
-    can_manage_equipment BOOLEAN DEFAULT FALSE,
-    can_manage_bookings BOOLEAN DEFAULT FALSE,
-    can_manage_logs BOOLEAN DEFAULT FALSE,
-
-    FOREIGN KEY (system_user_id)
-        REFERENCES system_users(system_user_id)
-        ON DELETE CASCADE
 );
 
 -- =========================================
@@ -145,6 +128,24 @@ CREATE TABLE equipments (
 );
 
 -- =========================================
+-- INSTRUCTORS
+-- =========================================
+-- Instructors are referenced by class schedules and lab utilization logs.
+-- They are NOT system users (instructors do not log in).
+
+CREATE TABLE instructors (
+    instructor_id INT PRIMARY KEY AUTO_INCREMENT,
+
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
+    middle_name VARCHAR(50),
+    suffix VARCHAR(5),
+
+    email VARCHAR(100) UNIQUE,
+    contact_number VARCHAR(30)
+);
+
+-- =========================================
 -- ACADEMIC TERMS
 -- =========================================
 
@@ -193,7 +194,7 @@ CREATE TABLE lab_utilization_logs (
         ON DELETE CASCADE,
 
     FOREIGN KEY (instructor_id)
-        REFERENCES system_users(system_user_id)
+        REFERENCES instructors(instructor_id)
         ON DELETE SET NULL,
 
     FOREIGN KEY (lab_id)
@@ -239,7 +240,7 @@ CREATE TABLE class_schedule (
         ON DELETE CASCADE,
 
     FOREIGN KEY (instructor_id)
-        REFERENCES system_users(system_user_id)
+        REFERENCES instructors(instructor_id)
         ON DELETE CASCADE,
 
     FOREIGN KEY (lab_id)

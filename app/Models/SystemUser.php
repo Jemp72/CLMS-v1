@@ -13,6 +13,8 @@ class SystemUser extends Authenticatable
 
     protected $primaryKey = 'system_user_id';
 
+    public $timestamps = false;
+
     protected $fillable = [
         'first_name',
         'last_name',
@@ -20,7 +22,6 @@ class SystemUser extends Authenticatable
         'suffix',
         'email',
         'password_hash',
-        'role_type',
         'reset_token',
         'reset_token_expiration',
     ];
@@ -30,18 +31,8 @@ class SystemUser extends Authenticatable
         'reset_token',
     ];
 
-    public function privileges()
+    public function getAuthPassword()
     {
-        return $this->hasOne(SystemUserPrivilege::class, 'system_user_id');
-    }
-
-    public function logs()
-    {
-        return $this->hasMany(LabUtilizationLog::class, 'instructor_id');
-    }
-
-    public function schedules()
-    {
-        return $this->hasMany(ClassSchedule::class, 'instructor_id');
+        return $this->password_hash;
     }
 }

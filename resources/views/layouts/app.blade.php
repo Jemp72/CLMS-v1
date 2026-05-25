@@ -45,9 +45,25 @@
                 <li>
                     <a href="{{ route('logbook') }}"
                        class="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium
-                              {{ request()->routeIs('logbook') ? 'bg-primary text-white' : 'text-[#2c2c2c] hover:bg-surface' }}">
+                              {{ request()->routeIs('logbook') || request()->routeIs('logs.*') ? 'bg-primary text-white' : 'text-[#2c2c2c] hover:bg-surface' }}">
                         <x-icon name="book-open" class="w-5 h-5 flex-shrink-0" />
-                        Logbook &amp; Students
+                        Logbook
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ route('enrollments.index') }}"
+                       class="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium
+                              {{ request()->routeIs('enrollments.*') ? 'bg-primary text-white' : 'text-[#2c2c2c] hover:bg-surface' }}">
+                        <x-icon name="user" class="w-5 h-5 flex-shrink-0" />
+                        Class List
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ route('instructors.index') }}"
+                       class="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium
+                              {{ request()->routeIs('instructors.*') ? 'bg-primary text-white' : 'text-[#2c2c2c] hover:bg-surface' }}">
+                        <x-icon name="users" class="w-5 h-5 flex-shrink-0" />
+                        Instructors
                     </a>
                 </li>
                 <li>
