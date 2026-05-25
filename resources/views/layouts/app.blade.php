@@ -115,6 +115,15 @@
                     <a href="#" class="block px-4 py-2.5 text-sm text-[#2c2c2c] hover:bg-surface transition-colors">Profile Settings</a>
                     <a href="#" class="block px-4 py-2.5 text-sm text-[#2c2c2c] hover:bg-surface transition-colors">Change Password</a>
                     <div class="border-t border-black/10 my-1"></div>
+                    <form method="POST" action="{{ route('switch-role') }}">
+                        @csrf
+                        <button type="submit"
+                                class="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-primary hover:bg-surface transition-colors">
+                            <x-icon name="refresh-cw" class="w-4 h-4" />
+                            Switch to {{ session('role') === 'admin' ? 'Instructor' : 'Admin' }} (Demo)
+                        </button>
+                    </form>
+                    <div class="border-t border-black/10 my-1"></div>
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
                         <button type="submit"

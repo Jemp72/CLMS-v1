@@ -2,25 +2,92 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\EquipmentController;
+use Illuminate\Support\Facades\DB;
+
 class InventoryController extends Controller
 {
     public function index()
     {
-        $equipment = [
-            ['serialNumber' => 'PC-2024-001', 'itemName' => 'Desktop Computer', 'brand' => 'Dell', 'model' => 'OptiPlex 7090', 'category' => 'Computer', 'status' => 'available'],
-            ['serialNumber' => 'PC-2024-002', 'itemName' => 'Desktop Computer', 'brand' => 'HP', 'model' => 'ProDesk 600', 'category' => 'Computer', 'status' => 'in-use'],
-            ['serialNumber' => 'MON-2024-001', 'itemName' => 'LCD Monitor', 'brand' => 'Samsung', 'model' => '24" S24R350', 'category' => 'Monitor', 'status' => 'available'],
-            ['serialNumber' => 'KB-2024-001', 'itemName' => 'Keyboard', 'brand' => 'Logitech', 'model' => 'K120', 'category' => 'Peripheral', 'status' => 'available'],
-            ['serialNumber' => 'MS-2024-001', 'itemName' => 'Mouse', 'brand' => 'Logitech', 'model' => 'M90', 'category' => 'Peripheral', 'status' => 'in-use'],
-            ['serialNumber' => 'SW-2024-001', 'itemName' => 'Network Switch', 'brand' => 'Cisco', 'model' => 'SG250-24', 'category' => 'Network', 'status' => 'available'],
-            ['serialNumber' => 'RT-2024-001', 'itemName' => 'Router', 'brand' => 'TP-Link', 'model' => 'Archer AX55', 'category' => 'Network', 'status' => 'in-use'],
-            ['serialNumber' => 'PC-2024-003', 'itemName' => 'Desktop Computer', 'brand' => 'Lenovo', 'model' => 'ThinkCentre M720', 'category' => 'Computer', 'status' => 'maintenance'],
-            ['serialNumber' => 'MON-2024-002', 'itemName' => 'LCD Monitor', 'brand' => 'LG', 'model' => '24MP400', 'category' => 'Monitor', 'status' => 'damaged'],
-            ['serialNumber' => 'PR-2024-001', 'itemName' => 'Printer', 'brand' => 'Epson', 'model' => 'L3210', 'category' => 'Printer', 'status' => 'available'],
-        ];
+        // ── Equipment ─────────────────────────────────────────────────────────
+        $equipment = DB::table('equipments')
+            ->join('laboratories', 'equipments.lab_id', '=', 'laboratories.lab_id')
+            ->select(
+                'equipments.*',
+                'laboratories.lab_name'
+            )
+            ->orderBy('equipment_name')
+            ->get()
+            ->map(fn ($e) => (array) $e)
+            ->toArray();
 
-        $categories = ['all', 'Computer', 'Monitor', 'Peripheral', 'Network', 'Printer'];
+        // ── Supplies ──────────────────────────────────────────────────────────
+        $supplies = DB::table('office_supplies')
+            ->orderBy('supply_name')
+            ->get()
+            ->map(fn ($s) => (array) $s)
+            ->toArray();
 
-        return view('inventory.index', compact('equipment', 'categories'));
+        // ── Stats ─────────────────────────────────────────────────────────────
+        $totalEquipment       = count($equipment);
+        $totalSupplies        = count($supplies);
+        $lowStockCount        = count(array_filter($supplies, fn ($s) => in_array($s['status'], ['low_stock', 'out_of_stock'])));
+
+        // Equipment count per laboratory
+        $perLab = DB::table('equipments')
+            ->join('laboratories', 'equipments.lab_id', '=', 'laboratories.lab_id')
+            ->select('laboratories.lab_name', DB::raw('COUNT(*) as total'))
+            ->groupBy('laboratories.lab_id', 'laboratories.lab_name')
+            ->orderBy('laboratories.lab_name')
+            ->get()
+            ->toArray();
+
+        // ── Filter options ────────────────────────────────────────────────────
+        $labs = DB::table('laboratories')
+            ->select('lab_id', 'lab_name')
+            ->orderBy('lab_name')
+            ->get()
+            ->toArray();
+
+        $typeLabels = EquipmentController::TYPE_LABELS;
+        $categories = SupplyController::CATEGORIES;
+
+        return view('inventory.index', compact(
+            'equipment',
+            'supplies',
+            'totalEquipment',
+            'totalSupplies',
+            'lowStockCount',
+            'perLab',
+            'labs',
+            'typeLabels',
+            'categories',
+        ));
+    }
+
+    public function print(\Illuminate\Http\Request $request)
+    {
+        $tab = $request->query('tab', 'equipment');
+
+        $equipmentRows = [];
+        $suppliesRows = [];
+
+        if ($tab === 'equipment') {
+            $equipmentRows = DB::table('equipments')
+                ->join('laboratories', 'equipments.lab_id', '=', 'laboratories.lab_id')
+                ->select('equipments.*', 'laboratories.lab_name')
+                ->orderBy('equipment_name')
+                ->get()
+                ->map(fn($e) => (array) $e)
+                ->toArray();
+        } else {
+            $suppliesRows = DB::table('office_supplies')
+                ->orderBy('supply_name')
+                ->get()
+                ->map(fn($s) => (array) $s)
+                ->toArray();
+        }
+
+        return view('inventory.print', compact('tab', 'equipmentRows', 'suppliesRows'));
     }
 }
