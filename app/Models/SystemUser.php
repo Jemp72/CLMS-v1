@@ -22,7 +22,6 @@ class SystemUser extends Authenticatable
         'suffix',
         'email',
         'password_hash',
-        'role_type',
         'reset_token',
         'reset_token_expiration',
     ];
@@ -35,20 +34,5 @@ class SystemUser extends Authenticatable
     public function getAuthPassword()
     {
         return $this->password_hash;
-    }
-
-    public function privileges()
-    {
-        return $this->hasOne(SystemUserPrivilege::class, 'system_user_id');
-    }
-
-    public function logs()
-    {
-        return $this->hasMany(LabUtilizationLog::class, 'instructor_id');
-    }
-
-    public function schedules()
-    {
-        return $this->hasMany(ClassSchedule::class, 'instructor_id');
     }
 }

@@ -73,7 +73,7 @@
                                focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 cursor-pointer">
                     <option value="">Select an instructor</option>
                     @foreach ($instructors as $instructor)
-                        <option value="{{ $instructor->system_user_id }}" @selected(old('instructor_id') == $instructor->system_user_id)>
+                        <option value="{{ $instructor->instructor_id }}" @selected(old('instructor_id') == $instructor->instructor_id)>
                             {{ $instructor->last_name }}, {{ $instructor->first_name }}
                         </option>
                     @endforeach
