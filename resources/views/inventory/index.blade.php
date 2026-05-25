@@ -924,19 +924,17 @@
                 <p class="text-sm text-muted mb-2">You are about to change the status of:</p>
                 <p class="text-sm font-medium text-[#2c2c2c] mb-3" x-text="pendingStatusSupply?.supply_name"></p>
                 <div class="flex items-center justify-center gap-2 mb-5">
-                    <span class="inline-block px-2 py-1 rounded text-xs font-medium"
-                          :class="supplyStatusClass(pendingStatusSupply?.status)"
+                    <span class="inline-block px-2 py-1 rounded border border-black/10 bg-surface text-[#2c2c2c] text-xs font-medium"
                           x-text="supplyStatusLabel(pendingStatusSupply?.status)"></span>
                     <x-icon name="arrow-right" class="w-4 h-4 text-muted" />
-                    <span class="inline-block px-2 py-1 rounded text-xs font-medium"
-                          :class="supplyStatusClass(pendingStatusValue)"
+                    <span class="inline-block px-2 py-1 rounded border border-black/10 bg-surface text-[#2c2c2c] text-xs font-medium"
                           x-text="supplyStatusLabel(pendingStatusValue)"></span>
                 </div>
                 <div class="flex justify-center gap-3">
                     <button type="button" @click="showStatusConfirm = false; pendingStatusSupply = null; pendingStatusValue = null"
                             class="px-5 py-2.5 border border-black/10 rounded-lg hover:bg-surface transition-colors text-sm">Cancel</button>
                     <button type="button" @click="submitStatusChange()"
-                            class="px-5 py-2.5 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors text-sm font-medium">Yes, Change Status</button>
+                            class="px-5 py-2.5 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors text-sm font-medium">Change status</button>
                 </div>
             </div>
         </div>
