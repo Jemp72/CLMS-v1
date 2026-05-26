@@ -66,6 +66,14 @@
                     </a>
                 </li>
                 <li>
+                    <a href="{{ route('activity-logs') }}"
+                       class="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium
+                              {{ request()->routeIs('activity-logs') ? 'bg-primary text-white' : 'text-[#2c2c2c] hover:bg-surface' }}">
+                        <x-icon name="activity" class="w-5 h-5 flex-shrink-0" />
+                        Activity Logs
+                    </a>
+                </li>
+                <li>
                     <a href="{{ route('enrollments.index') }}"
                        class="flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium
                               {{ request()->routeIs('enrollments.*') ? 'bg-primary text-white' : 'text-[#2c2c2c] hover:bg-surface' }}">
