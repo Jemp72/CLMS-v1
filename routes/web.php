@@ -8,6 +8,7 @@ use App\Http\Controllers\EquipmentController;
 use App\Http\Controllers\InstructorController;
 use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\LogbookController;
+use App\Http\Controllers\RecentActivityLogsController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\SupplyController;
 use App\Http\Middleware\RequireLogin;
@@ -39,6 +40,9 @@ Route::middleware(RequireLogin::class)->group(function () {
     // Admin logbook (lab utilization logs)
     Route::get('/logbook', [LogbookController::class, 'logs'])->name('logbook');
     Route::get('/logs',    [LogbookController::class, 'logs'])->name('logs.index');
+
+    // Activity logs feed
+    Route::get('/activity-logs', [RecentActivityLogsController::class, 'index'])->name('activity-logs');
 
     // Calendar view + class schedule management
     Route::get('/schedule',        [ScheduleController::class, 'index'])->name('schedule');

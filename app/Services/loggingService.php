@@ -264,6 +264,11 @@ class LoggingService
             $query->where('lab_id', $request->lab_id);
         }
 
+        // Specific date filter.
+        if ($request->filled('date')) {
+            $query->whereDate('log_date', $request->date);
+        }
+
         return $query->latest('time_in');
     }
 
