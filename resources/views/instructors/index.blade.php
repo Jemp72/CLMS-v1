@@ -54,7 +54,6 @@
                     <tr class="text-left text-xs font-semibold text-muted uppercase tracking-wide">
                         <th class="px-6 py-3">Name</th>
                         <th class="px-6 py-3">Email</th>
-                        <th class="px-6 py-3">Contact</th>
                         <th class="px-6 py-3 text-right">Classes</th>
                         <th class="px-6 py-3 text-right">Actions</th>
                     </tr>
@@ -67,9 +66,6 @@
                             </td>
                             <td class="px-6 py-4 text-[#2c2c2c]">
                                 {{ $instructor->email ?? '—' }}
-                            </td>
-                            <td class="px-6 py-4 text-muted">
-                                {{ $instructor->contact_number ?? '—' }}
                             </td>
                             <td class="px-6 py-4 text-right">
                                 <span class="inline-block px-2 py-0.5 bg-primary/10 text-primary rounded text-xs font-semibold">
