@@ -148,8 +148,8 @@
                         Start Time <span class="text-primary">*</span>
                     </label>
                     <input type="time" id="time_start" name="time_start" value="{{ old('time_start') }}" required
-                           class="w-full px-4 py-3 border @error('time_start') border-red-400 @else border-black/10 @enderror rounded-lg bg-surface text-sm
-                                  focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                        class="w-full px-4 py-3 border @error('time_start') border-red-400 @else border-black/10 @enderror rounded-lg bg-surface text-sm
+                                focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" />
                     @error('time_start')
                         <p class="text-xs text-red-500 mt-1">{{ $message }}</p>
                     @enderror
@@ -160,8 +160,8 @@
                         End Time <span class="text-primary">*</span>
                     </label>
                     <input type="time" id="time_end" name="time_end" value="{{ old('time_end') }}" required
-                           class="w-full px-4 py-3 border @error('time_end') border-red-400 @else border-black/10 @enderror rounded-lg bg-surface text-sm
-                                  focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" />
+                        class="w-full px-4 py-3 border @error('time_end') border-red-400 @else border-black/10 @enderror rounded-lg bg-surface text-sm
+                                focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" />
                     @error('time_end')
                         <p class="text-xs text-red-500 mt-1">{{ $message }}</p>
                     @enderror
@@ -184,4 +184,21 @@
     </div>
 
 </div>
+
+<script>
+    document.getElementById('time_start').addEventListener('change', function () {
+        if (!this.value) return;
+
+        const [hours, minutes] = this.value.split(':').map(Number);
+        const endDate = new Date();
+        endDate.setHours(hours + 3, minutes);
+
+        const endHours = String(endDate.getHours()).padStart(2, '0');
+        const endMinutes = String(endDate.getMinutes()).padStart(2, '0');
+
+        const timeEndInput = document.getElementById('time_end');
+
+        timeEndInput.value = `${endHours}:${endMinutes}`;
+    });
+</script>
 @endsection
