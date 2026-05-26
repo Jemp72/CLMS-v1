@@ -37,19 +37,13 @@
                     @click="mode = 'student_in'"
                     :class="mode === 'student_in' ? 'bg-primary text-white' : 'bg-white text-muted hover:bg-surface'"
                     class="flex-1 px-6 py-4 text-sm font-medium transition-colors">
-                Student Time In
+                Time In/Time Out
             </button>
             <button type="button"
                     @click="mode = 'guest_in'"
                     :class="mode === 'guest_in' ? 'bg-primary text-white' : 'bg-white text-muted hover:bg-surface'"
                     class="flex-1 px-6 py-4 text-sm font-medium transition-colors border-l border-black/10">
                 Visitor Time In
-            </button>
-            <button type="button"
-                    @click="mode = 'time_out'"
-                    :class="mode === 'time_out' ? 'bg-primary text-white' : 'bg-white text-muted hover:bg-surface'"
-                    class="flex-1 px-6 py-4 text-sm font-medium transition-colors border-l border-black/10">
-                Time Out
             </button>
         </div>
 
